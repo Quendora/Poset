@@ -8,7 +8,7 @@ using namespace std;
 const int LESS_THAN_RELATIONS = 0;
 const int GREATER_THAN_RELATIONS = 1;
 
-// Jak przechowywac w unordered_map referencje a nie kopie?
+// Jak przechowywać w unordered_map referencje a nie kopie?
 using RelationType = int;
 using Id = unsigned long;
 using Element = string;
@@ -25,16 +25,15 @@ unsigned int nextFreeId;
 
 namespace
 {
-    void makeNewPoset(unsigned long id, Element &newElement)
+    void addElementToPoset(unsigned long id, const Element &newElement)
     {
         GreaterThanRelations greaterThanRelations;
         LessThanRelations lessThanRelations;
-        Poset newPoset;
+        Poset poset = posets.at(id);
 
         ElementRelations elementRelations =
                 make_pair(lessThanRelations, greaterThanRelations);
-        newPoset.insert({newElement, elementRelations});
-        posets.insert({id, newPoset});
+        poset.insert({newElement, elementRelations});
     }
 
     bool checkIfPosetExists(unsigned long id)
@@ -88,6 +87,7 @@ namespace
         for (const Element &elementInRelation: relations)
         {
             Relations elementInRelationRelations;
+
             if (relationType == LESS_THAN_RELATIONS)
             {
                 elementInRelationRelations = poset.at(elementInRelation).first;
@@ -106,10 +106,8 @@ namespace
         Element element = string(value);
         Poset poset = posets.at(id);
         ElementRelations elementRelations = poset.at(element);
-        LessThanRelations lessThanRelations =
-                get<LESS_THAN_RELATIONS>(elementRelations);
-        GreaterThanRelations greaterThanRelations =
-                get<GREATER_THAN_RELATIONS>(elementRelations);
+        LessThanRelations lessThanRelations = elementRelations.first;
+        GreaterThanRelations greaterThanRelations = elementRelations.second;
 
         eraseRelationsFromElement(poset, element, lessThanRelations,
                 GREATER_THAN_RELATIONS);
@@ -118,9 +116,175 @@ namespace
 
         poset.erase(element);
     }
+
+    bool checkIfElementsAreInRelation(unsigned long id, char const *value1,
+            char const *value2)
+    {
+        return checkIfElementIsLessThanTheOther(id, value1, value2) ||
+            checkIfElementIsLessThanTheOther(id, value2, value1);
+    }
+
+    void linkElementsWithRelation(Poset &poset, const Element &elementToAdd,
+            const Relations &relations, const RelationType relationType)
+    {
+
+    }
+
+    bool checkIfElementBelongsToRelations(Relations relations, Element element)
+    {
+        return relations.find(element) != relations.end();
+    }
+
+    Relations getSpecificRelationType(ElementRelations elementRelations,
+            RelationType relationType)
+    {
+        if (relationType == LESS_THAN_RELATIONS)
+        {
+            return get<LESS_THAN_RELATIONS>(elementRelations);
+        }
+        else
+        {
+            return get<GREATER_THAN_RELATIONS>(elementRelations);
+        }
+    }
+
+    void addRelationsToSingleElement(const Element &elementA,
+            Relations elementBRelations)
+    {
+        for (const Element &elementFromElementBRelations: elementBRelations)
+        {
+            if (checkIfElementBelongsToRelations(elementBRelations,
+                    elementA))
+            {
+                continue;
+            }
+
+            elementBRelations.insert(elementA);
+        }
+    }
+
+    void addRelationBetweenSingleElements(const Element &elementA,
+            const Element &elementB, Relations elementARelations,
+            Relations elementBRelations)
+    {
+        elementARelations.insert(elementB);
+        elementBRelations.insert(elementA);
+    }
+
+    void addRelationBetweenElementsRelations(Relations elementBRelations,
+            Relations elementARelations)
+    {
+        for (const Element &elementFromElementBRelations: elementBRelations)
+        {
+            if (checkIfElementBelongsToRelations(
+                    elementARelations, elementFromElementBRelations))
+            {
+                continue;
+            }
+
+            elementARelations.insert(elementFromElementBRelations);
+        }
+    }
+
+
+    void closureRelationBetweenElements(Poset poset, const Element &elementA,
+            const Element &elementB, Relations elementARelations,
+            const Relations &elementBRelations, RelationType relationType)
+    {
+        for (const Element &elementFromElementARelations: elementARelations)
+        {
+            ElementRelations relationsOfElementFromElementARelations =
+                    poset.at(elementFromElementARelations);
+
+            Relations specificRelationsOfElementFromElementARelations =
+                    getSpecificRelationType(relationsOfElementFromElementARelations, relationType);
+
+            addRelationBetweenElementsRelations(elementBRelations, specificRelationsOfElementFromElementARelations);
+        }
+    }
+
+    void linkElementsFromRelationsAndClosureRelation(Poset poset, Element lessElement,
+            const Element &greaterElement)
+    {
+        LessThanRelations lessThanRelationsOfLessElement =
+                poset.at(lessElement).first;
+        GreaterThanRelations greaterThanRelationsOfGreaterElement =
+                poset.at(greaterElement).second;
+
+        closureRelationBetweenElements(poset, greaterElement, lessElement,
+                greaterThanRelationsOfGreaterElement,
+                lessThanRelationsOfLessElement, LESS_THAN_RELATIONS);
+
+        closureRelationBetweenElements(poset, lessElement, greaterElement,
+                lessThanRelationsOfLessElement,
+                greaterThanRelationsOfGreaterElement, GREATER_THAN_RELATIONS);
+    }
+
+    void linkLessAndGreaterElementWithRelation(Poset poset,
+            const Element &lessElement, const Element &greaterElement)
+    {
+        LessThanRelations lessThanRelationsOfGreaterElement =
+                poset.at(greaterElement).first;
+        GreaterThanRelations greaterThanRelationsOfLessElement =
+                poset.at(lessElement).second;
+
+        addRelationsToSingleElement(greaterElement,
+                greaterThanRelationsOfLessElement);
+        addRelationsToSingleElement(lessElement,
+                lessThanRelationsOfGreaterElement);
+
+        addRelationBetweenSingleElements(greaterElement, lessElement,
+                lessThanRelationsOfGreaterElement,
+                greaterThanRelationsOfLessElement);
+    }
+
+    void addAndClosureRelationBetweenElements(unsigned long id, char const *value1,
+            char const *value2)
+    {
+        Element lessElement = string(value1);
+        Element greaterElement = string(value2);
+        Poset poset = posets.at(id);
+
+        linkElementsFromRelationsAndClosureRelation(poset, lessElement, greaterElement);
+        linkLessAndGreaterElementWithRelation(poset, lessElement, greaterElement);
+
+//        //Do zbioru mniejszych WIEKSZEGO elementu dodaje mniejsze elementy
+//        for (const Element &greaterElement: greaterThanRelationsOfGreaterElement)
+//        {
+//            ElementRelations greaterElementRelations = poset.at(greaterElement);
+//            Relations greaterElementLessRelations = greaterElementRelations.first;
+//
+//            for (const Element &lessElement: lessThanRelationsOfLessElement)
+//            {
+//                if (checkIfElementBelongsToRelations(greaterElementLessRelations, lessElement))
+//                {
+//                    continue;
+//                }
+//
+//                greaterElementLessRelations.insert(lessElement);
+//            }
+//        }
+//
+//        // Do zbioru wiekszych MNIEJSZEGO elementu dodaje wieksze elementy
+//        for (const Element &lessElement: lessThanRelationsOfLessElement)
+//        {
+//            ElementRelations lessElementRelations = poset.at(lessElement);
+//            Relations lessElementGreaterRelations = lessElementRelations.second;
+//
+//            for (const Element &greaterElement: greaterThanRelationsOfGreaterElement)
+//            {
+//                if (checkIfElementBelongsToRelations(lessElementGreaterRelations, greaterElement))
+//                {
+//                    continue;
+//                }
+//
+//                lessElementGreaterRelations.insert(greaterElement);
+//            }
+//        }
+    }
 }
 
-//TODO
+//TODO Zeby to zrobic trzeba ogarnac jak zainicjowac zmienna globalna, a potem ja incrementowac.
 unsigned long poset_new(void)
 {
     return 0;
@@ -142,7 +306,7 @@ bool poset_insert(unsigned long id, char const *value)
 
     if (checkIfPosetExists(id) && !checkIfPosetExistsInPosets(id, newElement))
     {
-        makeNewPoset(id, newElement);
+        addElementToPoset(id, newElement);
 
         return true;
     }
@@ -166,6 +330,29 @@ bool poset_remove(unsigned long id, char const *value)
     }
 }
 
+//TODO IN PROGRESS
+bool poset_add(unsigned long id, char const *value1, char const *value2)
+{
+    if (checkIfPosetExists(id) && checkIfElementExistsInPoset(id, value1) &&
+            checkIfElementExistsInPoset(id, value2) &&
+            checkIfElementsAreInRelation(id, value1, value2))
+    {
+        addAndClosureRelationBetweenElements(id, value1, value2);
+
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+//TODO
+bool poset_del(unsigned long id, char const *value1, char const *value2)
+{
+    return false;
+}
+
 bool poset_test(unsigned long id, char const *value1, char const *value2)
 {
     if (checkIfPosetExists(id) && checkIfElementExistsInPoset(id, value1) &&
@@ -176,6 +363,17 @@ bool poset_test(unsigned long id, char const *value1, char const *value2)
     else
     {
         return false;
+    }
+}
+
+void poset_clear(unsigned long id)
+{
+    if (checkIfPosetExists(id))
+    {
+        posets.erase(id);
+
+        Poset emptyPoset;
+        posets.insert({id, emptyPoset});
     }
 }
 
