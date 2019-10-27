@@ -2,6 +2,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <string>
+#include <string_view>
 // tymczasowe, zeby przejrzysciej sie pisalo
 using namespace std;
 
@@ -117,10 +118,20 @@ namespace
         poset.erase(element);
     }
 
+    bool checkIfElementsAreEqual(char const *value1, char const *value2)
+    {
+        Element element1 = string(value1);
+        Element element2 = string(value2);
+
+        return element1 != element2;
+    }
+
+
     bool checkIfElementsAreInRelation(unsigned long id, char const *value1,
             char const *value2)
     {
-        return checkIfElementIsLessThanTheOther(id, value1, value2) ||
+        return checkIfElementsAreEqual(value1, value2) ||
+            checkIfElementIsLessThanTheOther(id, value1, value2) ||
             checkIfElementIsLessThanTheOther(id, value2, value1);
     }
 
@@ -243,10 +254,15 @@ namespace
     {
         Element lessElement = string(value1);
         Element greaterElement = string(value2);
-        Poset poset = posets.at(id);
 
-        linkElementsFromRelationsAndClosureRelation(poset, lessElement, greaterElement);
-        linkLessAndGreaterElementWithRelation(poset, lessElement, greaterElement);
+        if (lessElement != greaterElement)
+        {
+            Poset poset = posets.at(id);
+
+            linkElementsFromRelationsAndClosureRelation(poset, lessElement, greaterElement);
+            linkLessAndGreaterElementWithRelation(poset, lessElement, greaterElement);
+        }
+
 
 //        //Do zbioru mniejszych WIEKSZEGO elementu dodaje mniejsze elementy
 //        for (const Element &greaterElement: greaterThanRelationsOfGreaterElement)
@@ -330,7 +346,7 @@ bool poset_remove(unsigned long id, char const *value)
     }
 }
 
-//TODO IN PROGRESS
+
 bool poset_add(unsigned long id, char const *value1, char const *value2)
 {
     if (checkIfPosetExists(id) && checkIfElementExistsInPoset(id, value1) &&
@@ -379,5 +395,23 @@ void poset_clear(unsigned long id)
 
 int main()
 {
+//    char const *value = "sdfljsdljsdf";
+//    string vString = string(value);
+//    string vString1 = string(value);
+//
+//    unordered_map<string, int> map;
+//    map.insert({value, 0});
+//
+//    cout << vString <<endl;
+//    string_view vView = string_view(value);
+//    string_view vView1 = vString1;
+//
+//    string convert = (string) vView.substr(0);
+//    cout << (string) vView << "LUL" << endl;
+//
+//    cout << map.at(convert) << endl;
+//
+//    bool tak = vString == convert;
+//    cout << tak;
 
 }
