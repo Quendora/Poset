@@ -2,7 +2,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <string>
-#include <string_view>
+#include <string.h>
 // tymczasowe, zeby przejrzysciej sie pisalo
 using namespace std;
 
@@ -22,16 +22,28 @@ using Poset = unordered_map<Element, ElementRelations>;
 using Posets = unordered_map<Id, Poset>;
 
 // Chwilowo nie mam pojecia jak elegancko zaapliwoac tutaj zmienna globalna, wiec tymczasowo jest tak:
-Posets posets;
-unsigned int nextFreeId;
 
 namespace
 {
+    unsigned long nextFreeId;
+
+    Posets &posets()
+    {
+        static auto *a = new Posets();
+        return *a;
+    }
+
+    ElementPointer getElementPointerFromPoset(Poset poset, const Element &elementToFind)
+    {
+        Element elementFromPoset = poset.find(elementToFind) -> first;
+        return elementFromPoset.c_str();
+    }
+
     void addElementToPoset(unsigned long id, const Element &newElement)
     {
         GreaterThanRelations greaterThanRelations;
         LessThanRelations lessThanRelations;
-        Poset poset = posets.at(id);
+        Poset poset = posets().at(id);
 
         ElementRelations elementRelations =
                 make_pair(lessThanRelations, greaterThanRelations);
@@ -40,55 +52,43 @@ namespace
 
     bool checkIfPosetExists(unsigned long id)
     {
-        return posets.find(id) != posets.end();
-    }
-
-    bool checkIfPosetExistsInPosets(unsigned long id, string &newElement) //TODO DO WYWALENIA
-    {
-        Poset poset = posets.at(id);
-
-        return poset.find(newElement) != poset.end();
+        return posets().find(id) != posets().end();
     }
 
     bool checkIfElementExistsInPoset(unsigned long id, char const *value)
     {
-        if (posets.find(id) != posets.end())
-        {
-            Element element = string(value);
-            Poset poset = posets.at(id);
+        Element element = string(value);
+        Poset poset = posets().at(id);
 
-            if (poset.find(element) == poset.end())
-            {
-                return false;
-            }
-        }
-        else
-        {
-            return false;
-        }
-
-        return true;
-    }
-
-    ElementPointer getElementPointerFromPoset(Poset poset, Element elementToFind)
-    {
-        Element elementFromPoset = poset.find(elementToFind) -> first;
-        return elementFromPoset.c_str();
+        return poset.find(element) != poset.end();
     }
 
     bool checkIfElementIsLessThanTheOther(unsigned long id, char const *value1,
             char const *value2)
     {
-        Element lessElement = string(value1), greaterElement = string(value2);
-        Poset poset = posets.at(id);
+        Element lessElement = string(value1);
+        Element greaterElement = string(value2);
+        Poset poset = posets().at(id);
         ElementRelations elementRelations = poset.at(lessElement);
         GreaterThanRelations greaterThanRelations =
-                get<GREATER_THAN_RELATIONS>(elementRelations);
-        //TODO !!!!!!!!!!!!!!!!!!!!!
+                get<GREATER_ELEMENT>(elementRelations);
         ElementPointer elementPointer = getElementPointerFromPoset(poset, greaterElement);
-
+//
         return greaterThanRelations.find(elementPointer)
             != greaterThanRelations.end();
+    }
+
+    Relations getSpecificRelationType(ElementRelations elementRelations,
+            RelationType relationType)
+    {
+        if (relationType == LESSER_ELEMENT)
+        {
+            return get<LESSER_ELEMENT>(elementRelations);
+        }
+        else
+        {
+            return get<GREATER_ELEMENT>(elementRelations);
+        }
     }
 
     void eraseRelationsFromElement(Poset &poset, const Element &elementToErase,
@@ -96,43 +96,33 @@ namespace
     {
         for (const Element &elementInRelation: relations)
         {
-            Relations elementInRelationRelations;
+            ElementRelations elementRelations = poset.at(elementInRelation);
+            Relations elementInRelationRelations = getSpecificRelationType(elementRelations, relationType);
 
-            if (relationType == )
-            {
-                elementInRelationRelations = poset.at(elementInRelation).first;
-            }
-            else
-            {
-                elementInRelationRelations = poset.at(elementInRelation).second;
-            }
-
-            elementInRelationRelations.erase(elementToErase);
+            ElementPointer elementToErasePointer = getElementPointerFromPoset(poset, elementToErase);
+            elementInRelationRelations.erase(elementToErasePointer);
         }
     }
 
     void removeElementFromPoset(unsigned long id, char const *value)
     {
         Element element = string(value);
-        Poset poset = posets.at(id);
+        Poset poset = posets().at(id);
         ElementRelations elementRelations = poset.at(element);
         LessThanRelations lessThanRelations = elementRelations.first;
         GreaterThanRelations greaterThanRelations = elementRelations.second;
 
         eraseRelationsFromElement(poset, element, lessThanRelations,
-                GREATER_THAN_RELATIONS);
+                GREATER_ELEMENT);
         eraseRelationsFromElement(poset, element, greaterThanRelations,
-                );
+                LESSER_ELEMENT);
 
         poset.erase(element);
     }
 
-    bool checkIfElementsAreEqual(char const *value1, char const *value2)
+    bool checkIfElementsAreEqual(char const *value1, char const *value2) //TODO
     {
-        Element element1 = string(value1);
-        Element element2 = string(value2);
-
-        return element1 != element2;
+        return strcmp(value1, value2) == 0;
     }
 
 
@@ -144,65 +134,52 @@ namespace
             checkIfElementIsLessThanTheOther(id, value2, value1);
     }
 
-    void linkElementsWithRelation(Poset &poset, const Element &elementToAdd,
-            const Relations &relations, const RelationType relationType)
-    {
 
+    bool checkIfElementBelongsToRelations(const Poset &poset, Relations relations, Element element)
+    {
+        ElementPointer elementPointer = getElementPointerFromPoset(poset, element);
+        return relations.find(elementPointer) != relations.end();
     }
 
-    bool checkIfElementBelongsToRelations(Relations relations, Element element)
-    {
-        return relations.find(element) != relations.end();
-    }
-
-    Relations getSpecificRelationType(ElementRelations elementRelations,
-            RelationType relationType)
-    {
-        if (relationType == )
-        {
-            return get<>(elementRelations);
-        }
-        else
-        {
-            return get<GREATER_THAN_RELATIONS>(elementRelations);
-        }
-    }
-
-    void addRelationsToSingleElement(const Element &elementA,
+    void addRelationsToSingleElement(const Poset &poset, const Element &elementA,
             Relations elementBRelations)
     {
         for (const Element &elementFromElementBRelations: elementBRelations)
         {
-            if (checkIfElementBelongsToRelations(elementBRelations,
+            if (checkIfElementBelongsToRelations(poset, elementBRelations,
                     elementA))
             {
                 continue;
             }
 
-            elementBRelations.insert(elementA);
+            ElementPointer elementAPointer = getElementPointerFromPoset(poset, elementA);
+            elementBRelations.insert(elementAPointer);
         }
     }
 
-    void addRelationBetweenSingleElements(const Element &elementA,
-            const Element &elementB, Relations elementARelations,
-            Relations elementBRelations)
+    void addRelationBetweenSingleElements(const Poset &poset,
+            const Element &elementA, const Element &elementB,
+            Relations elementARelations, Relations elementBRelations)
     {
-        elementARelations.insert(elementB);
-        elementBRelations.insert(elementA);
+        ElementPointer elementAPointer = getElementPointerFromPoset(poset, elementA);
+        ElementPointer elementBPointer = getElementPointerFromPoset(poset, elementB);
+        elementARelations.insert(elementBPointer);
+        elementBRelations.insert(elementAPointer);
     }
 
-    void addRelationBetweenElementsRelations(Relations elementBRelations,
-            Relations elementARelations)
+    void addRelationBetweenElementsRelations(const Poset &poset,
+            Relations elementBRelations, Relations elementARelations)
     {
         for (const Element &elementFromElementBRelations: elementBRelations)
         {
-            if (checkIfElementBelongsToRelations(
-                    elementARelations, elementFromElementBRelations))
+            if (checkIfElementBelongsToRelations(poset, elementARelations,
+                    elementFromElementBRelations))
             {
                 continue;
             }
 
-            elementARelations.insert(elementFromElementBRelations);
+            ElementPointer elementPointer = getElementPointerFromPoset(poset, elementFromElementBRelations);
+            elementARelations.insert(elementPointer);
         }
     }
 
@@ -219,12 +196,12 @@ namespace
             Relations specificRelationsOfElementFromElementARelations =
                     getSpecificRelationType(relationsOfElementFromElementARelations, relationType);
 
-            addRelationBetweenElementsRelations(elementBRelations, specificRelationsOfElementFromElementARelations);
+            addRelationBetweenElementsRelations(poset, elementBRelations, specificRelationsOfElementFromElementARelations);
         }
     }
 
-    void linkElementsFromRelationsAndClosureRelation(Poset poset, Element lessElement,
-            const Element &greaterElement)
+    void linkElementsFromRelationsAndClosureRelation(Poset poset,
+            const Element &lessElement, const Element &greaterElement)
     {
         LessThanRelations lessThanRelationsOfLessElement =
                 poset.at(lessElement).first;
@@ -233,11 +210,11 @@ namespace
 
         closureRelationBetweenElements(poset, greaterElement, lessElement,
                 greaterThanRelationsOfGreaterElement,
-                lessThanRelationsOfLessElement, );
+                lessThanRelationsOfLessElement, LESSER_ELEMENT);
 
         closureRelationBetweenElements(poset, lessElement, greaterElement,
                 lessThanRelationsOfLessElement,
-                greaterThanRelationsOfGreaterElement, GREATER_THAN_RELATIONS);
+                greaterThanRelationsOfGreaterElement, GREATER_ELEMENT);
     }
 
     void linkLessAndGreaterElementWithRelation(Poset poset,
@@ -248,12 +225,12 @@ namespace
         GreaterThanRelations greaterThanRelationsOfLessElement =
                 poset.at(lessElement).second;
 
-        addRelationsToSingleElement(greaterElement,
+        addRelationsToSingleElement(poset, greaterElement,
                 greaterThanRelationsOfLessElement);
-        addRelationsToSingleElement(lessElement,
+        addRelationsToSingleElement(poset, lessElement,
                 lessThanRelationsOfGreaterElement);
 
-        addRelationBetweenSingleElements(greaterElement, lessElement,
+        addRelationBetweenSingleElements(poset, greaterElement, lessElement,
                 lessThanRelationsOfGreaterElement,
                 greaterThanRelationsOfLessElement);
     }
@@ -266,13 +243,11 @@ namespace
 
         if (lessElement != greaterElement)
         {
-            Poset poset = posets.at(id);
+            Poset poset = posets().at(id);
 
             linkElementsFromRelationsAndClosureRelation(poset, lessElement, greaterElement);
             linkLessAndGreaterElementWithRelation(poset, lessElement, greaterElement);
         }
-
-
 //        //Do zbioru mniejszych WIEKSZEGO elementu dodaje mniejsze elementy
 //        for (const Element &greaterElement: greaterThanRelationsOfGreaterElement)
 //        {
@@ -307,29 +282,79 @@ namespace
 //            }
 //        }
     }
+
+    bool checkIfAnyOfElementsIsLessThanTheOther(unsigned long id, char const *value,
+        const Relations &greaterThanRelations)
+    {
+        for (ElementPointer element : greaterThanRelations)
+        {
+            if (checkIfElementIsLessThanTheOther(id, element, value))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    bool checkIfNoOtherWay(unsigned long id, char const *value1, char const *value2)
+    {
+        Poset poset = posets().at(id);
+        ElementRelations element1Relations = poset.at(value1);
+        Relations greaterThanElement1Relations = getSpecificRelationType(element1Relations, GREATER_ELEMENT);
+
+        return checkIfAnyOfElementsIsLessThanTheOther(id, value2, greaterThanElement1Relations);
+    }
+
+    void deleteElementsFromRelations(unsigned long id, char const *value1, char const *value2)
+    {
+        Poset poset = posets().at(id);
+        Element element1 = string(value1);
+        Element element2 = string(value2);
+
+        ElementRelations element1Relations = poset.at(element1);
+        GreaterThanRelations greaterThanElement1 =
+                getSpecificRelationType(element1Relations, GREATER_ELEMENT);
+
+        ElementRelations element2Relations = poset.at(element2);
+        GreaterThanRelations lessThanElement2 =
+                getSpecificRelationType(element2Relations, LESSER_ELEMENT);
+
+        ElementPointer element1Pointer = getElementPointerFromPoset(poset, element1);
+        ElementPointer element2Pointer = getElementPointerFromPoset(poset, element2);
+
+        greaterThanElement1.erase(element1Pointer);
+        lessThanElement2.erase(element2Pointer);
+    }
 }
 
-//TODO Zeby to zrobic trzeba ogarnac jak zainicjowac zmienna globalna, a potem ja incrementowac.
+
 unsigned long poset_new(void)
 {
-    return 0;
+    Poset poset;
+    unsigned long newId = nextFreeId;
+
+    posets().insert({newId, poset});
+    nextFreeId++;
+
+    return newId;
 }
 
 void poset_delete(unsigned long id)
 {
-    posets.erase(id);
+    posets().erase(id);
 }
 
 size_t poset_size(unsigned long id)
 {
-    return posets.size();
+    return posets().size();
 }
 
 bool poset_insert(unsigned long id, char const *value)
 {
     Element newElement = string(value);
 
-    if (checkIfPosetExists(id) && !checkIfPosetExistsInPosets(id, newElement))
+    if (checkIfPosetExists(id) && !checkIfElementExistsInPoset(id, value))
     {
         addElementToPoset(id, newElement);
 
@@ -372,10 +397,20 @@ bool poset_add(unsigned long id, char const *value1, char const *value2)
     }
 }
 
-//TODO
 bool poset_del(unsigned long id, char const *value1, char const *value2)
 {
-    return false;
+    if (!(checkIfPosetExists(id) && checkIfElementExistsInPoset(id, value1) &&
+            checkIfElementExistsInPoset(id, value2) &&
+            !checkIfElementsAreEqual(value1, value2) && //nie mozna usunąć zwrotnosci
+            checkIfElementIsLessThanTheOther(id, value1, value2) &&
+            checkIfNoOtherWay(id, value1, value2)))
+    {
+        return false;
+    }
+
+    deleteElementsFromRelations(id, value1, value2);
+
+    return true;
 }
 
 bool poset_test(unsigned long id, char const *value1, char const *value2)
@@ -395,10 +430,13 @@ void poset_clear(unsigned long id)
 {
     if (checkIfPosetExists(id))
     {
-        posets.erase(id);
-
-        Poset emptyPoset;
-        posets.insert({id, emptyPoset});
+        Poset poset = posets().at(id);
+        poset.clear();
+//
+//        posets().erase(id);
+//
+//        Poset emptyPoset;
+//        posets().insert({id, emptyPoset});
     }
 }
 
