@@ -6,14 +6,15 @@
 // tymczasowe, zeby przejrzysciej sie pisalo
 using namespace std;
 
-const int LESS_THAN_RELATIONS = 0;
-const int GREATER_THAN_RELATIONS = 1;
+const int LESSER_ELEMENT = 0;
+const int GREATER_ELEMENT = 1;
 
 // Jak przechowywać w unordered_map referencje a nie kopie?
 using RelationType = int;
 using Id = unsigned long;
 using Element = string;
-using Relations = unordered_set<Element>;
+using ElementPointer = const char*;
+using Relations = unordered_set<ElementPointer>;
 using LessThanRelations = Relations;
 using GreaterThanRelations = Relations;
 using ElementRelations = pair<LessThanRelations, GreaterThanRelations>;
@@ -42,7 +43,7 @@ namespace
         return posets.find(id) != posets.end();
     }
 
-    bool checkIfPosetExistsInPosets(unsigned long id, string &newElement)
+    bool checkIfPosetExistsInPosets(unsigned long id, string &newElement) //TODO DO WYWALENIA
     {
         Poset poset = posets.at(id);
 
@@ -69,6 +70,12 @@ namespace
         return true;
     }
 
+    ElementPointer getElementPointerFromPoset(Poset poset, Element elementToFind)
+    {
+        Element elementFromPoset = poset.find(elementToFind) -> first;
+        return elementFromPoset.c_str();
+    }
+
     bool checkIfElementIsLessThanTheOther(unsigned long id, char const *value1,
             char const *value2)
     {
@@ -77,8 +84,10 @@ namespace
         ElementRelations elementRelations = poset.at(lessElement);
         GreaterThanRelations greaterThanRelations =
                 get<GREATER_THAN_RELATIONS>(elementRelations);
+        //TODO !!!!!!!!!!!!!!!!!!!!!
+        ElementPointer elementPointer = getElementPointerFromPoset(poset, greaterElement);
 
-        return greaterThanRelations.find(greaterElement)
+        return greaterThanRelations.find(elementPointer)
             != greaterThanRelations.end();
     }
 
@@ -89,7 +98,7 @@ namespace
         {
             Relations elementInRelationRelations;
 
-            if (relationType == LESS_THAN_RELATIONS)
+            if (relationType == )
             {
                 elementInRelationRelations = poset.at(elementInRelation).first;
             }
@@ -113,7 +122,7 @@ namespace
         eraseRelationsFromElement(poset, element, lessThanRelations,
                 GREATER_THAN_RELATIONS);
         eraseRelationsFromElement(poset, element, greaterThanRelations,
-                LESS_THAN_RELATIONS);
+                );
 
         poset.erase(element);
     }
@@ -149,9 +158,9 @@ namespace
     Relations getSpecificRelationType(ElementRelations elementRelations,
             RelationType relationType)
     {
-        if (relationType == LESS_THAN_RELATIONS)
+        if (relationType == )
         {
-            return get<LESS_THAN_RELATIONS>(elementRelations);
+            return get<>(elementRelations);
         }
         else
         {
@@ -224,7 +233,7 @@ namespace
 
         closureRelationBetweenElements(poset, greaterElement, lessElement,
                 greaterThanRelationsOfGreaterElement,
-                lessThanRelationsOfLessElement, LESS_THAN_RELATIONS);
+                lessThanRelationsOfLessElement, );
 
         closureRelationBetweenElements(poset, lessElement, greaterElement,
                 lessThanRelationsOfLessElement,
@@ -395,9 +404,15 @@ void poset_clear(unsigned long id)
 
 int main()
 {
-//    char const *value = "sdfljsdljsdf";
-//    string vString = string(value);
-//    string vString1 = string(value);
+//    char const *value1 = "sdfljsdljsdf";
+//    char const *value2 = "sdfljsdljsdf";
+//
+//    string vString = string(value1);
+//    string vString1 = string(value2);
+//
+//    bool x = vString == vString1;
+//
+//    cout << x;
 //
 //    unordered_map<string, int> map;
 //    map.insert({value, 0});
