@@ -3,11 +3,13 @@
 #include <unordered_map>
 #include <string>
 #include <string.h>
+#include <assert.h>
 // tymczasowe, zeby przejrzysciej sie pisalo
 using namespace std;
 
 const int LESSER_ELEMENT = 0;
 const int GREATER_ELEMENT = 1;
+const string NULL_VALUE = "NULL";
 
 // Jak przechowywać w unordered_map referencje a nie kopie?
 using RelationType = int;
@@ -25,12 +27,12 @@ using Posets = unordered_map<Id, Poset>;
 
 namespace
 {
-    unsigned long nextFreeId;
+    unsigned long nextFreeId = 0;
 
     Posets &posets()
     {
-        static auto *a = new Posets();
-        return *a;
+        static auto *posets = new Posets();
+        return *posets;
     }
 
     ElementPointer getElementPointerFromPoset(Poset poset, const Element &elementToFind)
@@ -41,12 +43,11 @@ namespace
 
     void addElementToPoset(unsigned long id, const Element &newElement)
     {
-        GreaterThanRelations greaterThanRelations;
-        LessThanRelations lessThanRelations;
+        GreaterThanRelations greaterThanRelations = GreaterThanRelations();
+        LessThanRelations lessThanRelations = LessThanRelations();
         Poset poset = posets().at(id);
 
-        ElementRelations elementRelations =
-                make_pair(lessThanRelations, greaterThanRelations);
+        ElementRelations elementRelations = make_pair(lessThanRelations, greaterThanRelations);
         poset.insert({newElement, elementRelations});
     }
 
@@ -120,7 +121,7 @@ namespace
         poset.erase(element);
     }
 
-    bool checkIfElementsAreEqual(char const *value1, char const *value2) //TODO
+    bool checkIfElementsAreEqual(char const *value1, char const *value2)
     {
         return strcmp(value1, value2) == 0;
     }
@@ -135,7 +136,7 @@ namespace
     }
 
 
-    bool checkIfElementBelongsToRelations(const Poset &poset, Relations relations, Element element)
+    bool checkIfElementBelongsToRelations(const Poset &poset, Relations relations, const Element &element)
     {
         ElementPointer elementPointer = getElementPointerFromPoset(poset, element);
         return relations.find(elementPointer) != relations.end();
@@ -196,7 +197,8 @@ namespace
             Relations specificRelationsOfElementFromElementARelations =
                     getSpecificRelationType(relationsOfElementFromElementARelations, relationType);
 
-            addRelationBetweenElementsRelations(poset, elementBRelations, specificRelationsOfElementFromElementARelations);
+            addRelationBetweenElementsRelations(poset, elementBRelations,
+                    specificRelationsOfElementFromElementARelations);
         }
     }
 
@@ -301,9 +303,11 @@ namespace
     {
         Poset poset = posets().at(id);
         ElementRelations element1Relations = poset.at(value1);
-        Relations greaterThanElement1Relations = getSpecificRelationType(element1Relations, GREATER_ELEMENT);
+        Relations greaterThanElement1Relations = getSpecificRelationType(
+                element1Relations, GREATER_ELEMENT);
 
-        return checkIfAnyOfElementsIsLessThanTheOther(id, value2, greaterThanElement1Relations);
+        return checkIfAnyOfElementsIsLessThanTheOther(id, value2,
+                greaterThanElement1Relations);
     }
 
     void deleteElementsFromRelations(unsigned long id, char const *value1, char const *value2)
@@ -320,8 +324,10 @@ namespace
         GreaterThanRelations lessThanElement2 =
                 getSpecificRelationType(element2Relations, LESSER_ELEMENT);
 
-        ElementPointer element1Pointer = getElementPointerFromPoset(poset, element1);
-        ElementPointer element2Pointer = getElementPointerFromPoset(poset, element2);
+        ElementPointer element1Pointer = getElementPointerFromPoset(poset,
+                element1);
+        ElementPointer element2Pointer = getElementPointerFromPoset(poset,
+                element2);
 
         greaterThanElement1.erase(element1Pointer);
         lessThanElement2.erase(element2Pointer);
@@ -347,7 +353,15 @@ void poset_delete(unsigned long id)
 
 size_t poset_size(unsigned long id)
 {
-    return posets().size();
+    if (checkIfPosetExists(id))
+    {
+        Poset poset = posets().at(id);
+        return poset.size();
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 bool poset_insert(unsigned long id, char const *value)
@@ -432,39 +446,60 @@ void poset_clear(unsigned long id)
     {
         Poset poset = posets().at(id);
         poset.clear();
-//
-//        posets().erase(id);
-//
-//        Poset emptyPoset;
-//        posets().insert({id, emptyPoset});
     }
 }
 
 int main()
 {
-//    char const *value1 = "sdfljsdljsdf";
-//    char const *value2 = "sdfljsdljsdf";
+    Id poset_id = poset_new();
+    assert(!poset_size(poset_id));
+    assert(poset_insert(poset_id, "a"));
+    assert(!poset_insert(poset_id, "a"));
+//    assert(poset_insert(poset_id, "b"));
+//    assert(poset_insert(poset_id, "c"));
+//    assert(poset_insert(poset_id, "d"));
+//    assert(poset_add(poset_id, "b", "c"));
+//    assert(poset_test(poset_id, "b", "c"));
+//    assert(!poset_test(poset_id, "c", "b"));
+//    assert(poset_test(poset_id, "b", "b"));
+//    assert(!poset_insert(poset_id, nullptr));
+//    assert(!poset_add(poset_id, "a", "a"));
+//    assert(!poset_add(poset_id, "c", "b"));
+//    assert(!poset_add(poset_id, "b", "c"));
+//    assert(poset_add(poset_id, "c", "d"));
+//    assert(poset_test(poset_id, "c", "d"));
+//    assert(poset_test(poset_id, "b", "d"));
+//    assert(poset_add(poset_id, "a", "b"));
+//    assert(poset_test(poset_id, "a", "b"));
+//    assert(poset_test(poset_id, "a", "d"));
+//    assert(!poset_test(poset_id, "d", "a"));
+//    poset_clear(poset_id);
+//    assert(!poset_test(poset_id, "a", "d"));
+//    assert(!poset_test(poset_id, "b", "c"));
+//    assert(!poset_test(poset_id, "b", "d"));
+//    assert(poset_insert(poset_id, "a"));
 //
-//    string vString = string(value1);
-//    string vString1 = string(value2);
 //
-//    bool x = vString == vString1;
+//    poset_clear(poset_id);
+//    assert(poset_size(poset_id) == 0);
 //
-//    cout << x;
+//    assert(poset_insert(poset_id, "a"));
+//    assert(poset_insert(poset_id, "b"));
+//    assert(poset_insert(poset_id, "c"));
+//    assert(poset_add(poset_id, "a", "b"));
+//    assert(poset_add(poset_id, "b", "c"));
 //
-//    unordered_map<string, int> map;
-//    map.insert({value, 0});
+//    assert(!poset_del(poset_id, "a", "c"));
+//    assert(poset_insert(poset_id, "d"));
+//    assert(!poset_del(poset_id, "a", "d"));
+//    assert(!poset_del(poset_id, "a", nullptr));
+//    assert(!poset_del(poset_id, "a", "e"));
 //
-//    cout << vString <<endl;
-//    string_view vView = string_view(value);
-//    string_view vView1 = vString1;
-//
-//    string convert = (string) vView.substr(0);
-//    cout << (string) vView << "LUL" << endl;
-//
-//    cout << map.at(convert) << endl;
-//
-//    bool tak = vString == convert;
-//    cout << tak;
+//    assert(poset_remove(poset_id, "b"));
+//    assert(poset_remove(poset_id, "c"));
+//    assert(poset_remove(poset_id, "d"));
+//    assert(poset_size(poset_id) == 1);
+//    assert(!poset_test(poset_id, "b", "d"));
+//    assert(!poset_test(poset_id, "a", "d"));
 
 }
