@@ -31,21 +31,25 @@ namespace
 
     Posets &posets()
     {
-        static auto *posets = new Posets();
-        return *posets;
+        static Posets posets;
+        return posets;
     }
 
-    ElementPointer getElementPointerFromPoset(Poset poset, const Element &elementToFind)
+    ElementPointer getElementPointerFromPoset(Poset &poset, const Element &elementToFind)
     {
-        Element elementFromPoset = poset.find(elementToFind) -> first;
-        return elementFromPoset.c_str();
+        return (poset.find(elementToFind) -> first).c_str();
+    }
+
+    bool checkIfElementIsNULL(char const* value)
+    {
+        return value == nullptr;
     }
 
     void addElementToPoset(unsigned long id, const Element &newElement)
     {
-        GreaterThanRelations greaterThanRelations = GreaterThanRelations();
-        LessThanRelations lessThanRelations = LessThanRelations();
-        Poset poset = posets().at(id);
+        GreaterThanRelations greaterThanRelations;
+        LessThanRelations lessThanRelations;
+        Poset &poset = posets().at(id);
 
         ElementRelations elementRelations = make_pair(lessThanRelations, greaterThanRelations);
         poset.insert({newElement, elementRelations});
@@ -59,27 +63,40 @@ namespace
     bool checkIfElementExistsInPoset(unsigned long id, char const *value)
     {
         Element element = string(value);
-        Poset poset = posets().at(id);
+        Poset &poset = posets().at(id);
 
         return poset.find(element) != poset.end();
+    }
+
+    bool checkIfElementsAreEqual(char const *value1, char const *value2)
+    {
+        return strcmp(value1, value2) == 0;
     }
 
     bool checkIfElementIsLessThanTheOther(unsigned long id, char const *value1,
             char const *value2)
     {
-        Element lessElement = string(value1);
-        Element greaterElement = string(value2);
-        Poset poset = posets().at(id);
-        ElementRelations elementRelations = poset.at(lessElement);
-        GreaterThanRelations greaterThanRelations =
-                get<GREATER_ELEMENT>(elementRelations);
-        ElementPointer elementPointer = getElementPointerFromPoset(poset, greaterElement);
-//
-        return greaterThanRelations.find(elementPointer)
-            != greaterThanRelations.end();
+        if (checkIfElementsAreEqual(value1, value2))
+        {
+            return true;
+        }
+        else
+        {
+            Element lessElement = string(value1);
+            Element greaterElement = string(value2);
+            Poset &poset = posets().at(id);
+            ElementRelations &elementRelations = poset.at(lessElement);
+            GreaterThanRelations &greaterThanRelations =
+                    get<GREATER_ELEMENT>(elementRelations);
+            ElementPointer elementPointer = getElementPointerFromPoset(poset, greaterElement);
+
+            return greaterThanRelations.find(elementPointer)
+                    != greaterThanRelations.end();
+        }
+
     }
 
-    Relations getSpecificRelationType(ElementRelations elementRelations,
+    Relations& getSpecificRelationType(ElementRelations &elementRelations,
             RelationType relationType)
     {
         if (relationType == LESSER_ELEMENT)
@@ -97,8 +114,8 @@ namespace
     {
         for (const Element &elementInRelation: relations)
         {
-            ElementRelations elementRelations = poset.at(elementInRelation);
-            Relations elementInRelationRelations = getSpecificRelationType(elementRelations, relationType);
+            ElementRelations &elementRelations = poset.at(elementInRelation);
+            Relations &elementInRelationRelations = getSpecificRelationType(elementRelations, relationType);
 
             ElementPointer elementToErasePointer = getElementPointerFromPoset(poset, elementToErase);
             elementInRelationRelations.erase(elementToErasePointer);
@@ -108,10 +125,10 @@ namespace
     void removeElementFromPoset(unsigned long id, char const *value)
     {
         Element element = string(value);
-        Poset poset = posets().at(id);
-        ElementRelations elementRelations = poset.at(element);
-        LessThanRelations lessThanRelations = elementRelations.first;
-        GreaterThanRelations greaterThanRelations = elementRelations.second;
+        Poset &poset = posets().at(id);
+        ElementRelations &elementRelations = poset.at(element);
+        LessThanRelations &lessThanRelations = elementRelations.first;
+        GreaterThanRelations &greaterThanRelations = elementRelations.second;
 
         eraseRelationsFromElement(poset, element, lessThanRelations,
                 GREATER_ELEMENT);
@@ -119,11 +136,6 @@ namespace
                 LESSER_ELEMENT);
 
         poset.erase(element);
-    }
-
-    bool checkIfElementsAreEqual(char const *value1, char const *value2)
-    {
-        return strcmp(value1, value2) == 0;
     }
 
 
@@ -136,40 +148,45 @@ namespace
     }
 
 
-    bool checkIfElementBelongsToRelations(const Poset &poset, Relations relations, const Element &element)
+    bool checkIfElementBelongsToRelations(Poset &poset, Relations &relations, const Element &element)
     {
         ElementPointer elementPointer = getElementPointerFromPoset(poset, element);
         return relations.find(elementPointer) != relations.end();
     }
 
-    void addRelationsToSingleElement(const Poset &poset, const Element &elementA,
-            Relations elementBRelations)
+    void addRelationsToSingleElement(Poset &poset, const Element &elementA,
+            Relations &elementBRelations, Relations &elementARelations, RelationType relationType)
     {
         for (const Element &elementFromElementBRelations: elementBRelations)
         {
-            if (checkIfElementBelongsToRelations(poset, elementBRelations,
+            ElementRelations &elementRelations = poset.at(elementFromElementBRelations);
+            Relations &specificRelations = getSpecificRelationType(elementRelations, relationType);
+
+            if (checkIfElementBelongsToRelations(poset, specificRelations,
                     elementA))
             {
                 continue;
             }
 
+            ElementPointer elementPointer = getElementPointerFromPoset(poset, elementFromElementBRelations);
             ElementPointer elementAPointer = getElementPointerFromPoset(poset, elementA);
-            elementBRelations.insert(elementAPointer);
+            specificRelations.insert(elementAPointer);
+            elementARelations.insert(elementPointer);
         }
     }
 
-    void addRelationBetweenSingleElements(const Poset &poset,
+    void addRelationBetweenSingleElements(Poset &poset,
             const Element &elementA, const Element &elementB,
-            Relations elementARelations, Relations elementBRelations)
+            Relations &elementARelations, Relations &elementBRelations)
     {
-        ElementPointer elementAPointer = getElementPointerFromPoset(poset, elementA);
         ElementPointer elementBPointer = getElementPointerFromPoset(poset, elementB);
+        ElementPointer elementAPointer = getElementPointerFromPoset(poset, elementA);
         elementARelations.insert(elementBPointer);
         elementBRelations.insert(elementAPointer);
     }
 
-    void addRelationBetweenElementsRelations(const Poset &poset,
-            Relations elementBRelations, Relations elementARelations)
+    void addRelationBetweenElementsRelations(Poset &poset,
+            Relations &elementBRelations, Relations &elementARelations)
     {
         for (const Element &elementFromElementBRelations: elementBRelations)
         {
@@ -185,16 +202,16 @@ namespace
     }
 
 
-    void closureRelationBetweenElements(Poset poset, const Element &elementA,
-            const Element &elementB, Relations elementARelations,
-            const Relations &elementBRelations, RelationType relationType)
+    void closureRelationBetweenElements(Poset &poset, const Element &elementA,
+            const Element &elementB, Relations &elementARelations,
+            Relations &elementBRelations, RelationType relationType)
     {
         for (const Element &elementFromElementARelations: elementARelations)
         {
-            ElementRelations relationsOfElementFromElementARelations =
+            ElementRelations &relationsOfElementFromElementARelations =
                     poset.at(elementFromElementARelations);
 
-            Relations specificRelationsOfElementFromElementARelations =
+            Relations &specificRelationsOfElementFromElementARelations =
                     getSpecificRelationType(relationsOfElementFromElementARelations, relationType);
 
             addRelationBetweenElementsRelations(poset, elementBRelations,
@@ -202,12 +219,12 @@ namespace
         }
     }
 
-    void linkElementsFromRelationsAndClosureRelation(Poset poset,
+    void linkElementsFromRelationsAndClosureRelation(Poset &poset,
             const Element &lessElement, const Element &greaterElement)
     {
-        LessThanRelations lessThanRelationsOfLessElement =
+        LessThanRelations &lessThanRelationsOfLessElement =
                 poset.at(lessElement).first;
-        GreaterThanRelations greaterThanRelationsOfGreaterElement =
+        GreaterThanRelations &greaterThanRelationsOfGreaterElement =
                 poset.at(greaterElement).second;
 
         closureRelationBetweenElements(poset, greaterElement, lessElement,
@@ -219,18 +236,24 @@ namespace
                 greaterThanRelationsOfGreaterElement, GREATER_ELEMENT);
     }
 
-    void linkLessAndGreaterElementWithRelation(Poset poset,
+    void linkLessAndGreaterElementWithRelation(Poset &poset,
             const Element &lessElement, const Element &greaterElement)
     {
-        LessThanRelations lessThanRelationsOfGreaterElement =
+        LessThanRelations &lessThanRelationsOfGreaterElement =
                 poset.at(greaterElement).first;
-        GreaterThanRelations greaterThanRelationsOfLessElement =
+        LessThanRelations &lessThanRelationsOfLessElement =
+                poset.at(lessElement).first;
+        GreaterThanRelations &greaterThanRelationsOfGreaterElement =
+                poset.at(greaterElement).second;
+        GreaterThanRelations &greaterThanRelationsOfLessElement =
                 poset.at(lessElement).second;
 
         addRelationsToSingleElement(poset, greaterElement,
-                greaterThanRelationsOfLessElement);
+                lessThanRelationsOfLessElement,
+                lessThanRelationsOfGreaterElement, GREATER_ELEMENT);
         addRelationsToSingleElement(poset, lessElement,
-                lessThanRelationsOfGreaterElement);
+                greaterThanRelationsOfGreaterElement,
+                greaterThanRelationsOfLessElement, LESSER_ELEMENT);
 
         addRelationBetweenSingleElements(poset, greaterElement, lessElement,
                 lessThanRelationsOfGreaterElement,
@@ -240,49 +263,15 @@ namespace
     void addAndClosureRelationBetweenElements(unsigned long id, char const *value1,
             char const *value2)
     {
+        Poset &poset = posets().at(id);
         Element lessElement = string(value1);
         Element greaterElement = string(value2);
 
-        if (lessElement != greaterElement)
+        if (!checkIfElementsAreEqual(value1, value2))
         {
-            Poset poset = posets().at(id);
-
             linkElementsFromRelationsAndClosureRelation(poset, lessElement, greaterElement);
             linkLessAndGreaterElementWithRelation(poset, lessElement, greaterElement);
         }
-//        //Do zbioru mniejszych WIEKSZEGO elementu dodaje mniejsze elementy
-//        for (const Element &greaterElement: greaterThanRelationsOfGreaterElement)
-//        {
-//            ElementRelations greaterElementRelations = poset.at(greaterElement);
-//            Relations greaterElementLessRelations = greaterElementRelations.first;
-//
-//            for (const Element &lessElement: lessThanRelationsOfLessElement)
-//            {
-//                if (checkIfElementBelongsToRelations(greaterElementLessRelations, lessElement))
-//                {
-//                    continue;
-//                }
-//
-//                greaterElementLessRelations.insert(lessElement);
-//            }
-//        }
-//
-//        // Do zbioru wiekszych MNIEJSZEGO elementu dodaje wieksze elementy
-//        for (const Element &lessElement: lessThanRelationsOfLessElement)
-//        {
-//            ElementRelations lessElementRelations = poset.at(lessElement);
-//            Relations lessElementGreaterRelations = lessElementRelations.second;
-//
-//            for (const Element &greaterElement: greaterThanRelationsOfGreaterElement)
-//            {
-//                if (checkIfElementBelongsToRelations(lessElementGreaterRelations, greaterElement))
-//                {
-//                    continue;
-//                }
-//
-//                lessElementGreaterRelations.insert(greaterElement);
-//            }
-//        }
     }
 
     bool checkIfAnyOfElementsIsLessThanTheOther(unsigned long id, char const *value,
@@ -301,9 +290,9 @@ namespace
 
     bool checkIfNoOtherWay(unsigned long id, char const *value1, char const *value2)
     {
-        Poset poset = posets().at(id);
-        ElementRelations element1Relations = poset.at(value1);
-        Relations greaterThanElement1Relations = getSpecificRelationType(
+        Poset &poset = posets().at(id);
+        ElementRelations &element1Relations = poset.at(value1);
+        Relations &greaterThanElement1Relations = getSpecificRelationType(
                 element1Relations, GREATER_ELEMENT);
 
         return checkIfAnyOfElementsIsLessThanTheOther(id, value2,
@@ -312,16 +301,16 @@ namespace
 
     void deleteElementsFromRelations(unsigned long id, char const *value1, char const *value2)
     {
-        Poset poset = posets().at(id);
+        Poset &poset = posets().at(id);
         Element element1 = string(value1);
         Element element2 = string(value2);
 
-        ElementRelations element1Relations = poset.at(element1);
-        GreaterThanRelations greaterThanElement1 =
+        ElementRelations &element1Relations = poset.at(element1);
+        GreaterThanRelations &greaterThanElement1 =
                 getSpecificRelationType(element1Relations, GREATER_ELEMENT);
 
-        ElementRelations element2Relations = poset.at(element2);
-        GreaterThanRelations lessThanElement2 =
+        ElementRelations &element2Relations = poset.at(element2);
+        GreaterThanRelations &lessThanElement2 =
                 getSpecificRelationType(element2Relations, LESSER_ELEMENT);
 
         ElementPointer element1Pointer = getElementPointerFromPoset(poset,
@@ -355,7 +344,7 @@ size_t poset_size(unsigned long id)
 {
     if (checkIfPosetExists(id))
     {
-        Poset poset = posets().at(id);
+        Poset &poset = posets().at(id);
         return poset.size();
     }
     else
@@ -366,10 +355,11 @@ size_t poset_size(unsigned long id)
 
 bool poset_insert(unsigned long id, char const *value)
 {
-    Element newElement = string(value);
 
-    if (checkIfPosetExists(id) && !checkIfElementExistsInPoset(id, value))
+    if (checkIfPosetExists(id) && !checkIfElementIsNULL(value) &&
+            !checkIfElementExistsInPoset(id, value))
     {
+        Element newElement = string(value);
         addElementToPoset(id, newElement);
 
         return true;
@@ -382,7 +372,8 @@ bool poset_insert(unsigned long id, char const *value)
 
 bool poset_remove(unsigned long id, char const *value)
 {
-    if (checkIfPosetExists(id) && checkIfElementExistsInPoset(id, value))
+    if (checkIfPosetExists(id) && !checkIfElementIsNULL(value) &&
+            checkIfElementExistsInPoset(id, value))
     {
         removeElementFromPoset(id, value);
 
@@ -397,9 +388,10 @@ bool poset_remove(unsigned long id, char const *value)
 
 bool poset_add(unsigned long id, char const *value1, char const *value2)
 {
-    if (checkIfPosetExists(id) && checkIfElementExistsInPoset(id, value1) &&
+    if (checkIfPosetExists(id) && !checkIfElementIsNULL(value1) &&
+            !checkIfElementIsNULL(value2) && checkIfElementExistsInPoset(id, value1) &&
             checkIfElementExistsInPoset(id, value2) &&
-            checkIfElementsAreInRelation(id, value1, value2))
+            !checkIfElementsAreInRelation(id, value1, value2))
     {
         addAndClosureRelationBetweenElements(id, value1, value2);
 
@@ -413,9 +405,10 @@ bool poset_add(unsigned long id, char const *value1, char const *value2)
 
 bool poset_del(unsigned long id, char const *value1, char const *value2)
 {
-    if (!(checkIfPosetExists(id) && checkIfElementExistsInPoset(id, value1) &&
+    if (!(!checkIfElementIsNULL(value1) && !checkIfElementIsNULL(value2) &&
+            checkIfPosetExists(id) && checkIfElementExistsInPoset(id, value1) &&
             checkIfElementExistsInPoset(id, value2) &&
-            !checkIfElementsAreEqual(value1, value2) && //nie mozna usunąć zwrotnosci
+            !checkIfElementsAreEqual(value1, value2) &&
             checkIfElementIsLessThanTheOther(id, value1, value2) &&
             checkIfNoOtherWay(id, value1, value2)))
     {
@@ -429,7 +422,8 @@ bool poset_del(unsigned long id, char const *value1, char const *value2)
 
 bool poset_test(unsigned long id, char const *value1, char const *value2)
 {
-    if (checkIfPosetExists(id) && checkIfElementExistsInPoset(id, value1) &&
+    if (!checkIfElementIsNULL(value1) && !checkIfElementIsNULL(value2) &&
+        checkIfPosetExists(id) && checkIfElementExistsInPoset(id, value1) &&
         checkIfElementExistsInPoset(id, value2))
     {
         return checkIfElementIsLessThanTheOther(id, value1, value2);
@@ -444,7 +438,7 @@ void poset_clear(unsigned long id)
 {
     if (checkIfPosetExists(id))
     {
-        Poset poset = posets().at(id);
+        Poset &poset = posets().at(id);
         poset.clear();
     }
 }
@@ -455,51 +449,51 @@ int main()
     assert(!poset_size(poset_id));
     assert(poset_insert(poset_id, "a"));
     assert(!poset_insert(poset_id, "a"));
-//    assert(poset_insert(poset_id, "b"));
-//    assert(poset_insert(poset_id, "c"));
-//    assert(poset_insert(poset_id, "d"));
-//    assert(poset_add(poset_id, "b", "c"));
-//    assert(poset_test(poset_id, "b", "c"));
-//    assert(!poset_test(poset_id, "c", "b"));
-//    assert(poset_test(poset_id, "b", "b"));
-//    assert(!poset_insert(poset_id, nullptr));
-//    assert(!poset_add(poset_id, "a", "a"));
-//    assert(!poset_add(poset_id, "c", "b"));
-//    assert(!poset_add(poset_id, "b", "c"));
-//    assert(poset_add(poset_id, "c", "d"));
-//    assert(poset_test(poset_id, "c", "d"));
-//    assert(poset_test(poset_id, "b", "d"));
-//    assert(poset_add(poset_id, "a", "b"));
-//    assert(poset_test(poset_id, "a", "b"));
-//    assert(poset_test(poset_id, "a", "d"));
-//    assert(!poset_test(poset_id, "d", "a"));
-//    poset_clear(poset_id);
-//    assert(!poset_test(poset_id, "a", "d"));
-//    assert(!poset_test(poset_id, "b", "c"));
-//    assert(!poset_test(poset_id, "b", "d"));
-//    assert(poset_insert(poset_id, "a"));
+    assert(poset_insert(poset_id, "b"));
+    assert(poset_insert(poset_id, "c"));
+    assert(poset_insert(poset_id, "d"));
+    assert(poset_add(poset_id, "b", "c"));
+    assert(poset_test(poset_id, "b", "c"));
+    assert(!poset_test(poset_id, "c", "b"));
+    assert(poset_test(poset_id, "b", "b"));
+    assert(!poset_insert(poset_id, nullptr));
+    assert(!poset_add(poset_id, "a", "a"));
+    assert(!poset_add(poset_id, "c", "b"));
+    assert(!poset_add(poset_id, "b", "c"));
+    assert(poset_add(poset_id, "c", "d"));
+    assert(poset_test(poset_id, "c", "d"));
+    assert(poset_test(poset_id, "b", "d"));
+    assert(poset_add(poset_id, "a", "b"));
+    assert(poset_test(poset_id, "a", "b"));
+    assert(poset_test(poset_id, "a", "d"));
+    assert(!poset_test(poset_id, "d", "a"));
+    poset_clear(poset_id);
+    assert(!poset_test(poset_id, "a", "d"));
+    assert(!poset_test(poset_id, "b", "c"));
+    assert(!poset_test(poset_id, "b", "d"));
+    assert(poset_insert(poset_id, "a"));
 //
 //
-//    poset_clear(poset_id);
-//    assert(poset_size(poset_id) == 0);
+    poset_clear(poset_id);
+    assert(poset_size(poset_id) == 0);
 //
-//    assert(poset_insert(poset_id, "a"));
-//    assert(poset_insert(poset_id, "b"));
-//    assert(poset_insert(poset_id, "c"));
-//    assert(poset_add(poset_id, "a", "b"));
-//    assert(poset_add(poset_id, "b", "c"));
+    assert(poset_insert(poset_id, "a"));
+    assert(poset_insert(poset_id, "b"));
+    assert(poset_insert(poset_id, "c"));
+    assert(poset_add(poset_id, "a", "b"));
+    assert(poset_add(poset_id, "b", "c"));
 //
-//    assert(!poset_del(poset_id, "a", "c"));
-//    assert(poset_insert(poset_id, "d"));
-//    assert(!poset_del(poset_id, "a", "d"));
-//    assert(!poset_del(poset_id, "a", nullptr));
-//    assert(!poset_del(poset_id, "a", "e"));
+    assert(!poset_del(poset_id, "a", "c"));
+    assert(poset_insert(poset_id, "d"));
+    assert(!poset_del(poset_id, "a", "d"));
+    assert(!poset_del(poset_id, "a", nullptr));
+    assert(!poset_del(poset_id, "a", "e"));
 //
-//    assert(poset_remove(poset_id, "b"));
-//    assert(poset_remove(poset_id, "c"));
-//    assert(poset_remove(poset_id, "d"));
-//    assert(poset_size(poset_id) == 1);
-//    assert(!poset_test(poset_id, "b", "d"));
-//    assert(!poset_test(poset_id, "a", "d"));
+    assert(poset_remove(poset_id, "b"));
+    assert(poset_remove(poset_id, "c"));
+    assert(poset_remove(poset_id, "d"));
+    assert(poset_size(poset_id) == 1);
+    assert(!poset_test(poset_id, "b", "d"));
+    assert(!poset_test(poset_id, "a", "d"));
 
 }
