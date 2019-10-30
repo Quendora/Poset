@@ -11,7 +11,7 @@ const int LESSER_ELEMENT = 0;
 const int GREATER_ELEMENT = 1;
 const bool WANTED_IN_POSET = true;
 const bool NOT_WANTED_IN_POSET = false;
-const string NULL_VALUE = nullptr;
+const char* NULL_VALUE = nullptr;
 
 // Jak przechowywać w unordered_map referencje a nie kopie?
 using RelationType = int;
@@ -502,55 +502,55 @@ void poset_clear(unsigned long id)
 
 int main()
 {
-    Id poset_id = poset_new();
-    assert(!poset_size(poset_id));
-    assert(poset_insert(poset_id, "a"));
-    assert(!poset_insert(poset_id, "a"));
-    assert(poset_insert(poset_id, "b"));
-    assert(poset_insert(poset_id, "c"));
-    assert(poset_insert(poset_id, "d"));
-    assert(poset_add(poset_id, "b", "c"));
-    assert(poset_test(poset_id, "b", "c"));
-    assert(!poset_test(poset_id, "c", "b"));
-    assert(poset_test(poset_id, "b", "b"));
-    assert(!poset_insert(poset_id, nullptr));
-    assert(!poset_add(poset_id, "a", "a"));
-    assert(!poset_add(poset_id, "c", "b"));
-    assert(!poset_add(poset_id, "b", "c"));
-    assert(poset_add(poset_id, "c", "d"));
-    assert(poset_test(poset_id, "c", "d"));
-    assert(poset_test(poset_id, "b", "d"));
-    assert(poset_add(poset_id, "a", "b"));
-    assert(poset_test(poset_id, "a", "b"));
-    assert(poset_test(poset_id, "a", "d"));
-    assert(!poset_test(poset_id, "d", "a"));
-    poset_clear(poset_id);
-    assert(!poset_test(poset_id, "a", "d"));
-    assert(!poset_test(poset_id, "b", "c"));
-    assert(!poset_test(poset_id, "b", "d"));
-    assert(poset_insert(poset_id, "a"));
+//    Id poset_id = poset_new();
+//    assert(!poset_size(poset_id));
+//    assert(poset_insert(poset_id, "a"));
+//    assert(!poset_insert(poset_id, "a"));
+//    assert(poset_insert(poset_id, "b"));
+//    assert(poset_insert(poset_id, "c"));
+//    assert(poset_insert(poset_id, "d"));
+//    assert(poset_add(poset_id, "b", "c"));
+//    assert(poset_test(poset_id, "b", "c"));
+//    assert(!poset_test(poset_id, "c", "b"));
+//    assert(poset_test(poset_id, "b", "b"));
+//    assert(!poset_insert(poset_id, nullptr));
+//    assert(!poset_add(poset_id, "a", "a"));
+//    assert(!poset_add(poset_id, "c", "b"));
+//    assert(!poset_add(poset_id, "b", "c"));
+//    assert(poset_add(poset_id, "c", "d"));
+//    assert(poset_test(poset_id, "c", "d"));
+//    assert(poset_test(poset_id, "b", "d"));
+//    assert(poset_add(poset_id, "a", "b"));
+//    assert(poset_test(poset_id, "a", "b"));
+//    assert(poset_test(poset_id, "a", "d"));
+//    assert(!poset_test(poset_id, "d", "a"));
+//    poset_clear(poset_id);
+//    assert(!poset_test(poset_id, "a", "d"));
+//    assert(!poset_test(poset_id, "b", "c"));
+//    assert(!poset_test(poset_id, "b", "d"));
+//    assert(poset_insert(poset_id, "a"));
 //
 //
-    poset_clear(poset_id);
-    assert(poset_size(poset_id) == 0);
-//
-    assert(poset_insert(poset_id, "a"));
-    assert(poset_insert(poset_id, "b"));
-    assert(poset_insert(poset_id, "c"));
-    assert(poset_add(poset_id, "a", "b"));
-    assert(poset_add(poset_id, "b", "c"));
-//
-    assert(!poset_del(poset_id, "a", "c"));
-    assert(poset_insert(poset_id, "d"));
-    assert(!poset_del(poset_id, "a", "d"));
-    assert(!poset_del(poset_id, "a", nullptr));
-    assert(!poset_del(poset_id, "a", "e"));
-//
-    assert(poset_remove(poset_id, "b"));
-    assert(poset_remove(poset_id, "c"));
-    assert(poset_remove(poset_id, "d"));
-    assert(poset_size(poset_id) == 1);
-    assert(!poset_test(poset_id, "b", "d"));
-    assert(!poset_test(poset_id, "a", "d"));
+//    poset_clear(poset_id);
+//    assert(poset_size(poset_id) == 0);
+////
+//    assert(poset_insert(poset_id, "a"));
+//    assert(poset_insert(poset_id, "b"));
+//    assert(poset_insert(poset_id, "c"));
+//    assert(poset_add(poset_id, "a", "b"));
+//    assert(poset_add(poset_id, "b", "c"));
+////
+//    assert(!poset_del(poset_id, "a", "c"));
+//    assert(poset_insert(poset_id, "d"));
+//    assert(!poset_del(poset_id, "a", "d"));
+//    assert(!poset_del(poset_id, "a", nullptr));
+//    assert(!poset_del(poset_id, "a", "e"));
+////
+//    assert(poset_remove(poset_id, "b"));
+//    assert(poset_remove(poset_id, "c"));
+//    assert(poset_remove(poset_id, "d"));
+//    assert(poset_size(poset_id) == 1);
+//    assert(!poset_test(poset_id, "b", "d"));
+//    assert(!poset_test(poset_id, "a", "d"));
 
 }
