@@ -15,6 +15,51 @@ const int FIRST_VALUE = 1;
 const int SECOND_VALUE = 2;
 const int CHECK_BOTH = 2;
 
+const char* DOES_NOT_EXIST = "does not exist";
+const char* NULL_STRING = "\"NULL\"";
+const char* QUOTE = "\"";
+const char* POSET_NEW_WITH_BRACKETS = "poset_new()";
+const char* POSET_NEW = "poset_new: ";
+const char* POSET_  = "poset_";
+const char* POSET = "poset ";
+const char* SPACE = " ";
+const char* OPENING_BRACKET = "(";
+const char* CLOSING_BRACKET = ")";
+const char* COLON = ": ";
+const char* CONTAINS = " contains ";
+const char* ELEMENTS_S = " element(s)";
+const char* COMMA = ", ";
+const char* ELEMENT = "element ";
+const char* RELATION = "relation ";
+const char* INVALID_VALUE = "invalid value";
+const char* NULL_IN_BRANCKETS = " (NULL)";
+const char* EXISTS = "exists";
+const char* DOES_NOT_EXISTS = "does not exists";
+const char* ALREADY_EXISTS = "already exists";
+const char* CANNOT_BE_DELETED = "cannot be deleted";
+const char* CANNOT_BE_ADDED = "cannot be added";
+const char* OR = " or ";
+const char* DELETE = "delete";
+const char* DELETED = "deleted";
+const char* CREATED = "created";
+const char* SIZE = "size";
+const char* INSERT = "insert";
+const char* INSERTED = "inserted";
+const char* REMOVE = "remove";
+const char* REMOVED = "removed";
+const char* ADD = "add";
+const char* ADDED = "added";
+const char* DEL = "del";
+const char* TEST = "test";
+const char* CLEAR = "clear";
+const char* CLEARED = "cleared";
+
+
+
+
+
+
+
 using RelationType = int;
 using Id = unsigned long;
 using Element = std::string;
@@ -51,18 +96,18 @@ namespace
     {
         if (value == NULL_VALUE)
         {
-            return "\"NULL\"";
+            return NULL_STRING;
         }
 
-        return "\"" + std::string(value) + "\"";
+        return QUOTE + std::string(value) + QUOTE;
     }
 
     void printErrPoset_newBeg()
     {
         if (debug)
         {
-            std::cerr << "poset_new()" << std::endl;
-            std::cerr << "poset_new: ";
+            std::cerr << POSET_NEW_WITH_BRACKETS << std::endl;
+            std::cerr << POSET_NEW;
         }
     }
 
@@ -70,8 +115,8 @@ namespace
     {
         if (debug)
         {
-            std::cerr << "poset_" << method << "(" << id << ")" << std::endl;
-            std::cerr << "poset_" << method <<": ";
+            std::cerr << POSET_ << method << OPENING_BRACKET << id << CLOSING_BRACKET << std::endl;
+            std::cerr << POSET_ << method << COLON;
         }
     }
 
@@ -79,7 +124,7 @@ namespace
     {
         if (debug)
         {
-            std::cerr << "poset "<< id << " " << comment << std::endl;
+            std::cerr << POSET << id << SPACE << comment << std::endl;
         }
     }
 
@@ -87,8 +132,8 @@ namespace
     {
         if (debug)
         {
-            std::cerr << "poset " << id << " contains "
-                      << posetSize << " element(s)" << std::endl;
+            std::cerr << POSET << id << CONTAINS
+                      << posetSize << ELEMENTS_S << std::endl;
         }
     }
 
@@ -96,9 +141,9 @@ namespace
             const std::string &method){
         if (debug)
         {
-            std::cerr << "poset_" << method << "(" << id << ", "
-                      << getCaps(value) << ")" << std::endl;
-            std::cerr << "poset_" << method << ": ";
+            std::cerr << POSET_ << method << OPENING_BRACKET << id << COMMA
+                      << getCaps(value) << CLOSING_BRACKET << std::endl;
+            std::cerr << POSET_ << method << COLON;
         }
     }
 
@@ -107,19 +152,20 @@ namespace
     {
         if (debug)
         {
-            std::cerr << "poset " << id << ", element " << getCaps(value)
-                      << " " << comment << std::endl;
+            std::cerr << POSET << id << COMMA << ELEMENT << getCaps(value)
+                      << SPACE << comment << std::endl;
         }
     }
 
     void printErrBegTwoValues(unsigned long id, const char* value1,
-            const char* value2, const std::string &method){
+            const char* value2, const std::string &method)
+            {
         if (debug)
         {
-            std::cerr << "poset_" << method << "(" << id << ", "
-                      << getCaps(value1) << ", "
-                      << getCaps(value2) << ")" << std::endl;
-            std::cerr << "poset_" << method << ": ";
+            std::cerr << POSET_ << method << OPENING_BRACKET << id << COMMA
+                      << getCaps(value1) << COMMA
+                      << getCaps(value2) << CLOSING_BRACKET << std::endl;
+            std::cerr << POSET_ << method << COLON;
         }
     }
 
@@ -128,8 +174,9 @@ namespace
     {
         if (debug)
         {
-            std::cerr << "poset " << id << ", relation (" << getCaps(value1)
-                      << ", " << getCaps(value2) << ") " << comment << std::endl;
+            std::cerr << POSET << id << COMMA << RELATION
+                << OPENING_BRACKET << getCaps(value1) << COMMA << getCaps(value2)
+                << CLOSING_BRACKET << SPACE << comment << std::endl;
         }
     }
 
@@ -137,14 +184,14 @@ namespace
     {
         if (debug && check)
         {
-            std::cerr << "invalid value";
+            std::cerr << INVALID_VALUE;
 
             if (valueNr > 0)
             {
                 std::cerr << valueNr;
             }
 
-            std::cerr <<" (NULL)" << std::endl;
+            std::cerr << NULL_IN_BRANCKETS << std::endl;
         }
     }
 
@@ -153,11 +200,11 @@ namespace
     {
         if (debug && check)
         {
-            printErrEndTwoValues(id, value1, value2, "exists");
+            printErrEndTwoValues(id, value1, value2, EXISTS);
         }
         else
         {
-            printErrEndTwoValues(id, value1, value2, "does not exist");
+            printErrEndTwoValues(id, value1, value2, DOES_NOT_EXISTS);
         }
     }
 
@@ -165,7 +212,7 @@ namespace
     {
         if (debug && !check)
         {
-            printErrEndNoValue(id, "does not exist");
+            printErrEndNoValue(id, DOES_NOT_EXISTS);
         }
     }
 
@@ -176,12 +223,12 @@ namespace
         {
             if (!check && wantedInPoset)
             {
-                printErrEndOneValue(id, value, "does not exist");
+                printErrEndOneValue(id, value, DOES_NOT_EXISTS);
             }
 
             if (check && !wantedInPoset)
             {
-                printErrEndOneValue(id, value, "already exists");
+                printErrEndOneValue(id, value, ALREADY_EXISTS);
             }
         }
     }
@@ -191,7 +238,7 @@ namespace
     {
         if (debug && !check)
         {
-            printErrEndTwoValues(id, value1, value2, "cannot be deleted");
+            printErrEndTwoValues(id, value1, value2, CANNOT_BE_DELETED);
         }
 
     }
@@ -201,7 +248,7 @@ namespace
     {
         if (debug && check)
         {
-            printErrEndTwoValues(id, value1, value2, "cannot be added");
+            printErrEndTwoValues(id, value1, value2, CANNOT_BE_ADDED);
         }
     }
 
@@ -210,9 +257,9 @@ namespace
     {
         if (debug && !check)
         {
-            std::cerr << "poset " << id << ", element " << getCaps(value1)
-                      << " or " << getCaps(value2)
-                      << " does not exist" << std::endl;
+            std::cerr << POSET << id << COMMA << ELEMENT << getCaps(value1)
+                      << OR << getCaps(value2) << SPACE
+                      << DOES_NOT_EXIST << std::endl;
         }
     }
 
@@ -221,7 +268,7 @@ namespace
     {
         if (debug && check)
         {
-            printErrEndTwoValues(id, value1, value2, "cannot be deleted");
+            printErrEndTwoValues(id, value1, value2, CANNOT_BE_DELETED);
         }
     }
 
@@ -359,7 +406,7 @@ namespace
 
         if (!check)
         {
-            printErrEndTwoValues(id, value1, value2, "does not exist");
+            printErrEndTwoValues(id, value1, value2, DOES_NOT_EXIST);
         }
 
         return check;
@@ -621,27 +668,27 @@ extern "C"
         nextFreeId++;
 
         //TODO DEBUG POSET N CREATED
-        printErrEndNoValue(newId, "created");
+        printErrEndNoValue(newId, CREATED);
 
         return newId;
     }
 
     void poset_delete(unsigned long id)
     {
-        printErrBegNoValue(id, "delete");
+        printErrBegNoValue(id, DELETE);
 
         if (checkIfPosetExists(id))
         {
             posets().erase(id);
 
             //TODO DEBUG POSET N DELETED
-            printErrEndNoValue(id, "deleted");
+            printErrEndNoValue(id, DELETED);
         }
     }
 
     size_t poset_size(unsigned long id)
     {
-        printErrBegNoValue(id, "size");
+        printErrBegNoValue(id, SIZE);
 
         if (checkIfPosetExists(id))
         {
@@ -659,7 +706,7 @@ extern "C"
 
     bool poset_insert(unsigned long id, char const *value)
     {
-        printErrBegOneValue(id, value, "insert");
+        printErrBegOneValue(id, value, INSERT);
 
         if (checkIfPosetExists(id) && !checkIfValueIsNULL(value,
                 ONLY_ONE_VALUE) &&
@@ -669,7 +716,7 @@ extern "C"
             addElementToPoset(id, value);
 
             //TODO DEBUG POSET N, ELEMENT "A" INSERTED
-            printErrEndOneValue(id, value, "inserted");
+            printErrEndOneValue(id, value, INSERTED);
 
             return true;
         }
@@ -681,7 +728,7 @@ extern "C"
 
     bool poset_remove(unsigned long id, char const *value)
     {
-        printErrBegOneValue(id, value, "remove");
+        printErrBegOneValue(id, value, REMOVE);
 
         if (checkIfPosetExists(id) && !checkIfValueIsNULL(value,
                 ONLY_ONE_VALUE) &&
@@ -691,7 +738,7 @@ extern "C"
             removeElementFromPoset(id, value);
 
             //TODO DEBUG POSET N, ELEMENT "A" REMOVED
-            printErrEndOneValue(id, value, "removed");
+            printErrEndOneValue(id, value, REMOVED);
 
             return true;
         }
@@ -704,7 +751,7 @@ extern "C"
 
     bool poset_add(unsigned long id, char const *value1, char const *value2)
     {
-        printErrBegTwoValues(id, value1, value2, "add");
+        printErrBegTwoValues(id, value1, value2, ADD);
 
         if (checkIfPosetExists(id) &&
                 !checkIfAnyElementIsNULL(value1, value2) &&
@@ -714,7 +761,7 @@ extern "C"
             addAndClosureRelationBetweenElements(id, value1, value2);
 
             //TODO DEBUG POSET N, RELATION ("A", "B") ADDED
-            printErrEndTwoValues(id, value1, value2, "added");
+            printErrEndTwoValues(id, value1, value2, ADDED);
 
             return true;
         }
@@ -726,7 +773,7 @@ extern "C"
 
     bool poset_del(unsigned long id, char const *value1, char const *value2)
     {
-        printErrBegTwoValues(id, value1, value2, "del");
+        printErrBegTwoValues(id, value1, value2, DEL);
 
         if (checkIfPosetExists(id) &&
                 !checkIfAnyElementIsNULL(value1, value2) &&
@@ -738,7 +785,7 @@ extern "C"
             deleteElementsFromRelations(id, value1, value2);
 
             //TODO DEBUG POSET N, RELATION ("A", "B") DELETED
-            printErrEndTwoValues(id, value1, value2, "deleted");
+            printErrEndTwoValues(id, value1, value2, DELETED);
 
             return true;
         }
@@ -750,7 +797,7 @@ extern "C"
 
     bool poset_test(unsigned long id, char const *value1, char const *value2)
     {
-        printErrBegTwoValues(id, value1, value2, "test");
+        printErrBegTwoValues(id, value1, value2, TEST);
 
         if (!checkIfAnyElementIsNULL(value1, value2) &&
                 checkIfPosetExists(id) &&
@@ -772,7 +819,7 @@ extern "C"
 
     void poset_clear(unsigned long id)
     {
-        printErrBegNoValue(id, "clear");
+        printErrBegNoValue(id, CLEAR);
 
         if (checkIfPosetExists(id))
         {
@@ -780,7 +827,7 @@ extern "C"
             poset.clear();
 
             //TODO DEBUG POSET N CLEARED
-            printErrEndNoValue(id, "cleared");
+            printErrEndNoValue(id, CLEARED);
         }
     }
 }
