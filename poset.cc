@@ -4,31 +4,41 @@
 #include <string>
 #include <string.h>
 #include <assert.h>
-// tymczasowe, zeby przejrzysciej sie pisalo
-using namespace std;
 
 const int LESSER_ELEMENT = 0;
 const int GREATER_ELEMENT = 1;
 const bool WANTED_IN_POSET = true;
 const bool NOT_WANTED_IN_POSET = false;
 const char* NULL_VALUE = nullptr;
+const int ONLY_ONE_VALUE = 0;
+const int FIRST_VALUE = 1;
+const int SECOND_VALUE = 2;
+const int CHECK_BOTH = 2;
 
-// Jak przechowywać w unordered_map referencje a nie kopie?
 using RelationType = int;
 using Id = unsigned long;
-using Element = string;
+using Element = std::string;
 using ElementPointer = const char*;
-using Relations = unordered_set<ElementPointer>;
+using Relations = std::unordered_set<ElementPointer>;
 using LessThanRelations = Relations;
 using GreaterThanRelations = Relations;
-using ElementRelations = pair<LessThanRelations, GreaterThanRelations>;
-using Poset = unordered_map<Element, ElementRelations>;
-using Posets = unordered_map<Id, Poset>;
+using ElementRelations = std::pair<LessThanRelations, GreaterThanRelations>;
+using Poset = std::unordered_map<Element, ElementRelations>;
+using Posets = std::unordered_map<Id, Poset>;
 
-// Chwilowo nie mam pojecia jak elegancko zaapliwoac tutaj zmienna globalna, wiec tymczasowo jest tak:
+void cerr_init()
+{
+    static std::ios_base::Init init;
+}
 
 namespace
 {
+    #ifndef NDEBUG
+        const bool debug = true;
+    #else
+        const bool debug = false;
+    #endif
+
     unsigned long nextFreeId = 0;
 
     Posets &posets()
@@ -37,31 +47,214 @@ namespace
         return posets;
     }
 
-    ElementPointer getElementPointerFromPoset(Poset &poset, const Element &elementToFind)
+    std::string getCaps(const char* value)
+    {
+        if (value == NULL_VALUE)
+        {
+            return "\"NULL\"";
+        }
+
+        return "\"" + std::string(value) + "\"";
+    }
+
+    void printErrPoset_newBeg()
+    {
+        if (debug)
+        {
+            std::cerr << "poset_new()" << std::endl;
+            std::cerr << "poset_new: ";
+        }
+    }
+
+    void printErrBegNoValue(unsigned long id, const std::string &method)
+    {
+        if (debug)
+        {
+            std::cerr << "poset_" << method << "(" << id << ")" << std::endl;
+            std::cerr << "poset_" << method <<": ";
+        }
+    }
+
+    void printErrEndNoValue(unsigned long id, const std::string &comment)
+    {
+        if (debug)
+        {
+            std::cerr << "poset "<< id << " " << comment << std::endl;
+        }
+    }
+
+    void printErrPoset_sizeEnd(unsigned long id, size_t posetSize)
+    {
+        if (debug)
+        {
+            std::cerr << "poset " << id << " contains "
+                      << posetSize << " element(s)" << std::endl;
+        }
+    }
+
+    void printErrBegOneValue(unsigned long id, const char* value,
+            const std::string &method){
+        if (debug)
+        {
+            std::cerr << "poset_" << method << "(" << id << ", "
+                      << getCaps(value) << ")" << std::endl;
+            std::cerr << "poset_" << method << ": ";
+        }
+    }
+
+    void printErrEndOneValue(unsigned long id, const char* value,
+            const std::string &comment)
+    {
+        if (debug)
+        {
+            std::cerr << "poset " << id << ", element " << getCaps(value)
+                      << " " << comment << std::endl;
+        }
+    }
+
+    void printErrBegTwoValues(unsigned long id, const char* value1,
+            const char* value2, const std::string &method){
+        if (debug)
+        {
+            std::cerr << "poset_" << method << "(" << id << ", "
+                      << getCaps(value1) << ", "
+                      << getCaps(value2) << ")" << std::endl;
+            std::cerr << "poset_" << method << ": ";
+        }
+    }
+
+    void printErrEndTwoValues(unsigned long id, const char* value1,
+            const char* value2, const std::string &comment)
+    {
+        if (debug)
+        {
+            std::cerr << "poset " << id << ", relation (" << getCaps(value1)
+                      << ", " << getCaps(value2) << ") " << comment << std::endl;
+        }
+    }
+
+    void printErrElementIsNULL(int valueNr, bool check)
+    {
+        if (debug && check)
+        {
+            std::cerr << "invalid value";
+
+            if (valueNr > 0)
+            {
+                std::cerr << valueNr;
+            }
+
+            std::cerr <<" (NULL)" << std::endl;
+        }
+    }
+
+    void printErrRelationExistsOrNotExists(unsigned long id, const char* value1,
+            const char* value2, bool check)
+    {
+        if (debug && check)
+        {
+            printErrEndTwoValues(id, value1, value2, "exists");
+        }
+        else
+        {
+            printErrEndTwoValues(id, value1, value2, "does not exist");
+        }
+    }
+
+    void printErrPosetDoesNotExist(unsigned long id, bool check)
+    {
+        if (debug && !check)
+        {
+            printErrEndNoValue(id, "does not exist");
+        }
+    }
+
+    void printErrElementExistsOrNotExists(unsigned long id, const char* value,
+            bool check, bool wantedInPoset, bool valuesToCheck)
+    {
+        if (debug && valuesToCheck == ONLY_ONE_VALUE)
+        {
+            if (!check && wantedInPoset)
+            {
+                printErrEndOneValue(id, value, "does not exist");
+            }
+
+            if (check && !wantedInPoset)
+            {
+                printErrEndOneValue(id, value, "already exists");
+            }
+        }
+    }
+
+    void printErrRelationCannotBeDeleted(unsigned long id, const char* value1,
+            const char* value2, bool check)
+    {
+        if (debug && !check)
+        {
+            printErrEndTwoValues(id, value1, value2, "cannot be deleted");
+        }
+
+    }
+
+    void printErrRelationCannotBeAdded(unsigned long id, const char* value1,
+            const char* value2, bool check)
+    {
+        if (debug && check)
+        {
+            printErrEndTwoValues(id, value1, value2, "cannot be added");
+        }
+    }
+
+    void printErrNotExists(unsigned long id, char const *value1,
+            char const* value2, bool check)
+    {
+        if (debug && !check)
+        {
+            std::cerr << "poset " << id << ", element " << getCaps(value1)
+                      << " or " << getCaps(value2)
+                      << " does not exist" << std::endl;
+        }
+    }
+
+    void printErrReflexiveRelation(unsigned long id,
+            const char *value1, const char *value2, bool check)
+    {
+        if (debug && check)
+        {
+            printErrEndTwoValues(id, value1, value2, "cannot be deleted");
+        }
+    }
+
+    ElementPointer getElementPointerFromPoset(Poset &poset,
+            const Element &elementToFind)
     {
         return (poset.find(elementToFind) -> first).c_str();
     }
 
-    bool checkIfElementIsNULL(char const* value)
+    bool checkIfValueIsNULL(char const* value, int valueNr)
     {
         bool check = value == NULL_VALUE;
-        //TODO INVALID VALUE (NULL)
+
+        //TODO INVALID VALUE (NULL)+ przelacznik
+        printErrElementIsNULL(valueNr, check);
 
         return check;
     }
 
     bool checkIfAnyElementIsNULL(char const* value1, char const *value2)
     {
-        return !checkIfElementIsNULL(value1) || !checkIfElementIsNULL(value2);
+        return checkIfValueIsNULL(value1, FIRST_VALUE) ||
+                checkIfValueIsNULL(value2, SECOND_VALUE);
     }
 
     void addElementToPoset(unsigned long id, const char* value)
     {
-        Element newElement = string(value);
+        Element newElement = std::string(value);
         Poset &poset = posets().at(id);
         GreaterThanRelations greaterThanRelations;
         LessThanRelations lessThanRelations;
-        ElementRelations elementRelations = make_pair(lessThanRelations, greaterThanRelations);
+        ElementRelations elementRelations = make_pair(lessThanRelations,
+                greaterThanRelations);
 
         poset.insert({newElement, elementRelations});
     }
@@ -69,15 +262,17 @@ namespace
     bool checkIfPosetExists(unsigned long id)
     {
         bool check = posets().find(id) != posets().end();
+
         //TODO DEBUG POSET N DOES NOT EXISTS
+        printErrPosetDoesNotExist(id, check);
 
         return check;
     }
 
     bool checkIfElementExistsInPoset(unsigned long id, char const *value,
-            bool wantedInPoset)
+            bool wantedInPoset, int valuesToCheck)
     {
-        Element element = string(value);
+        Element element = std::string(value);
         Poset &poset = posets().at(id);
 
         bool check = poset.find(element) != poset.end();
@@ -85,6 +280,8 @@ namespace
         // 2 WERSJE ZALEZNE OD WANTED_IN_POSET
         //TODO DEBUG POSET N, ELEMENT "A" DOES NOT EXIST
         //TODO DEBUG POSET N, ELEMENT "A" ALREADY EXISTS
+        printErrElementExistsOrNotExists(id, value, check, wantedInPoset,
+                valuesToCheck);
 
         return check;
     }
@@ -92,10 +289,13 @@ namespace
     bool checkIfBothElementsExistInPoset(unsigned long id, char const *value1,
             char const* value2)
     {
-        bool check = checkIfElementExistsInPoset(id, value1, WANTED_IN_POSET) &&
-                checkIfElementExistsInPoset(id, value2, WANTED_IN_POSET);
+        bool check = checkIfElementExistsInPoset(id, value1,
+                WANTED_IN_POSET,CHECK_BOTH) &&
+                checkIfElementExistsInPoset(id, value2,
+                        WANTED_IN_POSET, CHECK_BOTH);
 
         //TODO DEBUG POSET N, ELEMENT "A" OR "B" DOES NOT EXIST
+        printErrNotExists(id, value1, value2, check);
 
         return check;
     }
@@ -103,6 +303,30 @@ namespace
     bool checkIfElementsAreEqual(char const *value1, char const *value2)
     {
         return strcmp(value1, value2) == 0;
+    }
+
+    bool checkIfReflexiveRelation(unsigned long id,
+            const char *value1, const char *value2)
+    {
+        bool check = checkIfElementsAreEqual(value1, value2);
+
+        printErrReflexiveRelation(id, value1, value2, check);
+
+        return check;
+    }
+
+
+    Relations& getSpecificRelationType(ElementRelations &elementRelations,
+            RelationType relationType)
+    {
+        if (relationType == LESSER_ELEMENT)
+        {
+            return std::get<LESSER_ELEMENT>(elementRelations);
+        }
+        else
+        {
+            return std::get<GREATER_ELEMENT>(elementRelations);
+        }
     }
 
     bool checkIfElementIsLessThanTheOther(unsigned long id, char const *value1,
@@ -114,31 +338,31 @@ namespace
         }
         else
         {
-            Element lessElement = string(value1);
-            Element greaterElement = string(value2);
+            Element lessElement = std::string(value1);
+            Element greaterElement = std::string(value2);
             Poset &poset = posets().at(id);
             ElementRelations &elementRelations = poset.at(lessElement);
             GreaterThanRelations &greaterThanRelations =
-                    get<GREATER_ELEMENT>(elementRelations);
-            ElementPointer elementPointer = getElementPointerFromPoset(poset, greaterElement);
+                    getSpecificRelationType(elementRelations, GREATER_ELEMENT);
+            ElementPointer elementPointer = getElementPointerFromPoset(poset,
+                    greaterElement);
 
             return greaterThanRelations.find(elementPointer) !=
                     greaterThanRelations.end();
         }
-
     }
 
-    Relations& getSpecificRelationType(ElementRelations &elementRelations,
-            RelationType relationType)
+    bool checkIfElementIsLessThanTheOtherForDel(unsigned long id,
+            char const *value1, char const *value2)
     {
-        if (relationType == LESSER_ELEMENT)
+        bool check = checkIfElementIsLessThanTheOther(id, value1, value2);
+
+        if (!check)
         {
-            return get<LESSER_ELEMENT>(elementRelations);
+            printErrEndTwoValues(id, value1, value2, "does not exist");
         }
-        else
-        {
-            return get<GREATER_ELEMENT>(elementRelations);
-        }
+
+        return check;
     }
 
     void eraseRelationsFromElement(Poset &poset, const Element &elementToErase,
@@ -147,16 +371,18 @@ namespace
         for (const Element &elementInRelation: relations)
         {
             ElementRelations &elementRelations = poset.at(elementInRelation);
-            Relations &elementInRelationRelations = getSpecificRelationType(elementRelations, relationType);
+            Relations &elementInRelationRelations = getSpecificRelationType(
+                    elementRelations, relationType);
 
-            ElementPointer elementToErasePointer = getElementPointerFromPoset(poset, elementToErase);
+            ElementPointer elementToErasePointer = getElementPointerFromPoset(
+                    poset, elementToErase);
             elementInRelationRelations.erase(elementToErasePointer);
         }
     }
 
     void removeElementFromPoset(unsigned long id, char const *value)
     {
-        Element element = string(value);
+        Element element = std::string(value);
         Poset &poset = posets().at(id);
         ElementRelations &elementRelations = poset.at(element);
         LessThanRelations &lessThanRelations = elementRelations.first;
@@ -179,24 +405,30 @@ namespace
                 checkIfElementIsLessThanTheOther(id, value2, value1);
 
         //TODO DEBUG POSET N, RELATION ("A", "B") CANNOT BE ADDED
+        printErrRelationCannotBeAdded(id, value1, value2, check);
 
         return check;
     }
 
 
-    bool checkIfElementBelongsToRelations(Poset &poset, Relations &relations, const Element &element)
+    bool checkIfElementBelongsToRelations(Poset &poset, Relations &relations,
+            const Element &element)
     {
-        ElementPointer elementPointer = getElementPointerFromPoset(poset, element);
+        ElementPointer elementPointer = getElementPointerFromPoset(poset,
+                element);
         return relations.find(elementPointer) != relations.end();
     }
 
     void addRelationsToSingleElement(Poset &poset, const Element &elementA,
-            Relations &elementBRelations, Relations &elementARelations, RelationType relationType)
+            Relations &elementBRelations, Relations &elementARelations,
+            RelationType relationType)
     {
         for (const Element &elementFromElementBRelations: elementBRelations)
         {
-            ElementRelations &elementRelations = poset.at(elementFromElementBRelations);
-            Relations &specificRelations = getSpecificRelationType(elementRelations, relationType);
+            ElementRelations &elementRelations = poset.at(
+                    elementFromElementBRelations);
+            Relations &specificRelations = getSpecificRelationType(
+                    elementRelations, relationType);
 
             if (checkIfElementBelongsToRelations(poset, specificRelations,
                     elementA))
@@ -204,8 +436,10 @@ namespace
                 continue;
             }
 
-            ElementPointer elementPointer = getElementPointerFromPoset(poset, elementFromElementBRelations);
-            ElementPointer elementAPointer = getElementPointerFromPoset(poset, elementA);
+            ElementPointer elementPointer = getElementPointerFromPoset(poset,
+                    elementFromElementBRelations);
+            ElementPointer elementAPointer = getElementPointerFromPoset(poset,
+                    elementA);
             specificRelations.insert(elementAPointer);
             elementARelations.insert(elementPointer);
         }
@@ -215,8 +449,10 @@ namespace
             const Element &elementA, const Element &elementB,
             Relations &elementARelations, Relations &elementBRelations)
     {
-        ElementPointer elementBPointer = getElementPointerFromPoset(poset, elementB);
-        ElementPointer elementAPointer = getElementPointerFromPoset(poset, elementA);
+        ElementPointer elementBPointer = getElementPointerFromPoset(poset,
+                elementB);
+        ElementPointer elementAPointer = getElementPointerFromPoset(poset,
+                elementA);
         elementARelations.insert(elementBPointer);
         elementBRelations.insert(elementAPointer);
     }
@@ -232,7 +468,8 @@ namespace
                 continue;
             }
 
-            ElementPointer elementPointer = getElementPointerFromPoset(poset, elementFromElementBRelations);
+            ElementPointer elementPointer = getElementPointerFromPoset(poset,
+                    elementFromElementBRelations);
             elementARelations.insert(elementPointer);
         }
     }
@@ -248,7 +485,9 @@ namespace
                     poset.at(elementFromElementARelations);
 
             Relations &specificRelationsOfElementFromElementARelations =
-                    getSpecificRelationType(relationsOfElementFromElementARelations, relationType);
+                    getSpecificRelationType(
+                            relationsOfElementFromElementARelations,
+                            relationType);
 
             addRelationBetweenElementsRelations(poset, elementBRelations,
                     specificRelationsOfElementFromElementARelations);
@@ -296,21 +535,24 @@ namespace
                 greaterThanRelationsOfLessElement);
     }
 
-    void addAndClosureRelationBetweenElements(unsigned long id, char const *value1,
-            char const *value2)
+    void addAndClosureRelationBetweenElements(unsigned long id,
+            char const *value1, char const *value2)
     {
         Poset &poset = posets().at(id);
-        Element lessElement = string(value1);
-        Element greaterElement = string(value2);
+        Element lessElement = std::string(value1);
+        Element greaterElement = std::string(value2);
 
         if (!checkIfElementsAreEqual(value1, value2))
         {
-            linkElementsFromRelationsAndClosureRelation(poset, lessElement, greaterElement);
-            linkLessAndGreaterElementWithRelation(poset, lessElement, greaterElement);
+            linkElementsFromRelationsAndClosureRelation(poset, lessElement,
+                    greaterElement);
+            linkLessAndGreaterElementWithRelation(poset, lessElement,
+                    greaterElement);
         }
     }
 
-    bool checkIfAnyOfElementsIsLessThanTheOther(unsigned long id, char const *value,
+    bool checkIfAnyOfElementsIsLessThanTheOther(unsigned long id,
+            char const *value,
         const Relations &greaterThanRelations)
     {
         for (ElementPointer element : greaterThanRelations)
@@ -324,7 +566,8 @@ namespace
         return true;
     }
 
-    bool checkIfNoOtherWay(unsigned long id, char const *value1, char const *value2)
+    bool checkIfNoOtherWay(unsigned long id, char const *value1,
+            char const *value2)
     {
         Poset &poset = posets().at(id);
         ElementRelations &element1Relations = poset.at(value1);
@@ -335,15 +578,17 @@ namespace
                 greaterThanElement1Relations);
 
         //TODO DEBUG POSET N, RELATION ("A", "B") CANNOT BE DELETED
+        printErrRelationCannotBeDeleted(id, value1, value2, check);
 
         return check;
     }
 
-    void deleteElementsFromRelations(unsigned long id, char const *value1, char const *value2)
+    void deleteElementsFromRelations(unsigned long id, char const *value1,
+            char const *value2)
     {
         Poset &poset = posets().at(id);
-        Element element1 = string(value1);
-        Element element2 = string(value2);
+        Element element1 = std::string(value1);
+        Element element2 = std::string(value2);
 
         ElementRelations &element1Relations = poset.at(element1);
         GreaterThanRelations &greaterThanElement1 =
@@ -363,194 +608,234 @@ namespace
     }
 }
 
-
-unsigned long poset_new(void)
+extern "C"
 {
-    Poset poset;
-    unsigned long newId = nextFreeId;
-
-    posets().insert({newId, poset});
-    nextFreeId++;
-
-    //TODO DEBUG POSET N CREATED
-
-    return newId;
-}
-
-void poset_delete(unsigned long id)
-{
-    if (checkIfPosetExists(id))
+    unsigned long poset_new(void)
     {
-        posets().erase(id);
-        //TODO DEBUG POSET N DELETED
-    }
-}
+        printErrPoset_newBeg();
 
-size_t poset_size(unsigned long id)
-{
-    if (checkIfPosetExists(id))
-    {
-        Poset &poset = posets().at(id);
-        size_t posetSize = poset.size();
+        Poset poset;
+        unsigned long newId = nextFreeId;
 
-        //TODO DEBUG POSET N CONTAINS K ELEMENT(S)
+        posets().insert({newId, poset});
+        nextFreeId++;
 
-        return posetSize;
+        //TODO DEBUG POSET N CREATED
+        printErrEndNoValue(newId, "created");
+
+        return newId;
     }
 
-    return 0;
-}
-
-bool poset_insert(unsigned long id, char const *value)
-{
-
-    if (checkIfPosetExists(id) && !checkIfElementIsNULL(value) &&
-            !checkIfElementExistsInPoset(id, value, NOT_WANTED_IN_POSET))
+    void poset_delete(unsigned long id)
     {
-        addElementToPoset(id, value);
-        //TODO DEBUG POSET N, ELEMENT "A" INSERTED
+        printErrBegNoValue(id, "delete");
 
-        return true;
+        if (checkIfPosetExists(id))
+        {
+            posets().erase(id);
+
+            //TODO DEBUG POSET N DELETED
+            printErrEndNoValue(id, "deleted");
+        }
     }
-    else
+
+    size_t poset_size(unsigned long id)
     {
-        return false;
+        printErrBegNoValue(id, "size");
+
+        if (checkIfPosetExists(id))
+        {
+            Poset &poset = posets().at(id);
+            size_t posetSize = poset.size();
+
+            //TODO DEBUG POSET N CONTAINS K ELEMENT(S)
+            printErrPoset_sizeEnd(id, posetSize);
+
+            return posetSize;
+        }
+
+        return 0;
     }
-}
 
-bool poset_remove(unsigned long id, char const *value)
-{
-    if (checkIfPosetExists(id) && !checkIfElementIsNULL(value) &&
-            checkIfElementExistsInPoset(id, value, WANTED_IN_POSET))
+    bool poset_insert(unsigned long id, char const *value)
     {
-        removeElementFromPoset(id, value);
-        //TODO DEBUG POSET N, ELEMENT "A" REMOVED
+        printErrBegOneValue(id, value, "insert");
 
-        return true;
+        if (checkIfPosetExists(id) && !checkIfValueIsNULL(value,
+                ONLY_ONE_VALUE) &&
+                !checkIfElementExistsInPoset(id, value,
+                        NOT_WANTED_IN_POSET, ONLY_ONE_VALUE))
+        {
+            addElementToPoset(id, value);
+
+            //TODO DEBUG POSET N, ELEMENT "A" INSERTED
+            printErrEndOneValue(id, value, "inserted");
+
+            return true;
+        }
+        else
+        {
+            return false;
+        }
     }
-    else
+
+    bool poset_remove(unsigned long id, char const *value)
     {
-        return false;
+        printErrBegOneValue(id, value, "remove");
+
+        if (checkIfPosetExists(id) && !checkIfValueIsNULL(value,
+                ONLY_ONE_VALUE) &&
+                checkIfElementExistsInPoset(id, value, WANTED_IN_POSET,
+                        ONLY_ONE_VALUE))
+        {
+            removeElementFromPoset(id, value);
+
+            //TODO DEBUG POSET N, ELEMENT "A" REMOVED
+            printErrEndOneValue(id, value, "removed");
+
+            return true;
+        }
+        else
+        {
+            return false;
+        }
     }
-}
 
 
-bool poset_add(unsigned long id, char const *value1, char const *value2)
-{
-    if (checkIfPosetExists(id) && !checkIfAnyElementIsNULL(value1, value2) &&
-            checkIfBothElementsExistInPoset(id, value1, value2) &&
-            !checkIfElementsAreInRelation(id, value1, value2))
+    bool poset_add(unsigned long id, char const *value1, char const *value2)
     {
-        addAndClosureRelationBetweenElements(id, value1, value2);
-        //TODO DEBUG POSET N, RELATION ("A", "B") ADDED
+        printErrBegTwoValues(id, value1, value2, "add");
 
-        return true;
+        if (checkIfPosetExists(id) &&
+                !checkIfAnyElementIsNULL(value1, value2) &&
+                checkIfBothElementsExistInPoset(id, value1, value2) &&
+                !checkIfElementsAreInRelation(id, value1, value2))
+        {
+            addAndClosureRelationBetweenElements(id, value1, value2);
+
+            //TODO DEBUG POSET N, RELATION ("A", "B") ADDED
+            printErrEndTwoValues(id, value1, value2, "added");
+
+            return true;
+        }
+        else
+        {
+            return false;
+        }
     }
-    else
+
+    bool poset_del(unsigned long id, char const *value1, char const *value2)
     {
-        return false;
+        printErrBegTwoValues(id, value1, value2, "del");
+
+        if (checkIfPosetExists(id) &&
+                !checkIfAnyElementIsNULL(value1, value2) &&
+                checkIfBothElementsExistInPoset(id, value1, value2) &&
+                !checkIfReflexiveRelation(id, value1, value2) &&
+                checkIfElementIsLessThanTheOtherForDel(id, value1, value2) &&
+                checkIfNoOtherWay(id, value1, value2))
+        {
+            deleteElementsFromRelations(id, value1, value2);
+
+            //TODO DEBUG POSET N, RELATION ("A", "B") DELETED
+            printErrEndTwoValues(id, value1, value2, "deleted");
+
+            return true;
+        }
+        else
+        {
+            return false;
+        }
     }
-}
 
-bool poset_del(unsigned long id, char const *value1, char const *value2)
-{
-    if (!checkIfAnyElementIsNULL(value1, value2) && checkIfPosetExists(id) &&
-            checkIfBothElementsExistInPoset(id, value1, value2) &&
-            !checkIfElementsAreEqual(value1, value2) &&
-            checkIfElementIsLessThanTheOther(id, value1, value2) &&
-            checkIfNoOtherWay(id, value1, value2))
+    bool poset_test(unsigned long id, char const *value1, char const *value2)
     {
-        deleteElementsFromRelations(id, value1, value2);
-        //TODO DEBUG POSET N, RELATION ("A", "B") DELETED
+        printErrBegTwoValues(id, value1, value2, "test");
 
-        return true;
+        if (!checkIfAnyElementIsNULL(value1, value2) &&
+                checkIfPosetExists(id) &&
+                checkIfBothElementsExistInPoset(id, value1, value2))
+        {
+            bool check = checkIfElementIsLessThanTheOther(id, value1, value2);
+
+            //TODO DEBUG POSET N, RELATION ("A", "B") EXISTS
+            //TODO DEBUG POSET N, RELATION ("A", "B") DOES NOT EXIST
+            printErrRelationExistsOrNotExists(id, value1, value2, check);
+
+            return check;
+        }
+        else
+        {
+            return false;
+        }
     }
-    else
-    {
-        return false;
-    }
-}
 
-bool poset_test(unsigned long id, char const *value1, char const *value2)
-{
-    if (!checkIfAnyElementIsNULL(value1, value2) &&
-        checkIfPosetExists(id) &&
-        checkIfBothElementsExistInPoset(id, value1, value2))
+    void poset_clear(unsigned long id)
     {
-        bool check = checkIfElementIsLessThanTheOther(id, value1, value2);
-        //TODO DEBUG POSET N, RELATION ("A", "B") EXISTS
-        //TODO DEBUG POSET N, RELATION ("A", "B") DOES NOT EXIST
+        printErrBegNoValue(id, "clear");
 
-        return check;
-    }
-    else
-    {
-        return false;
-    }
-}
+        if (checkIfPosetExists(id))
+        {
+            Poset &poset = posets().at(id);
+            poset.clear();
 
-void poset_clear(unsigned long id)
-{
-    if (checkIfPosetExists(id))
-    {
-        Poset &poset = posets().at(id);
-        poset.clear();
-
-        //TODO DEBUG POSET N CLEARED
+            //TODO DEBUG POSET N CLEARED
+            printErrEndNoValue(id, "cleared");
+        }
     }
 }
 
 int main()
 {
-//    Id poset_id = poset_new();
-//    assert(!poset_size(poset_id));
-//    assert(poset_insert(poset_id, "a"));
-//    assert(!poset_insert(poset_id, "a"));
-//    assert(poset_insert(poset_id, "b"));
-//    assert(poset_insert(poset_id, "c"));
-//    assert(poset_insert(poset_id, "d"));
-//    assert(poset_add(poset_id, "b", "c"));
-//    assert(poset_test(poset_id, "b", "c"));
-//    assert(!poset_test(poset_id, "c", "b"));
-//    assert(poset_test(poset_id, "b", "b"));
-//    assert(!poset_insert(poset_id, nullptr));
-//    assert(!poset_add(poset_id, "a", "a"));
-//    assert(!poset_add(poset_id, "c", "b"));
-//    assert(!poset_add(poset_id, "b", "c"));
-//    assert(poset_add(poset_id, "c", "d"));
-//    assert(poset_test(poset_id, "c", "d"));
-//    assert(poset_test(poset_id, "b", "d"));
-//    assert(poset_add(poset_id, "a", "b"));
-//    assert(poset_test(poset_id, "a", "b"));
-//    assert(poset_test(poset_id, "a", "d"));
-//    assert(!poset_test(poset_id, "d", "a"));
-//    poset_clear(poset_id);
-//    assert(!poset_test(poset_id, "a", "d"));
-//    assert(!poset_test(poset_id, "b", "c"));
-//    assert(!poset_test(poset_id, "b", "d"));
-//    assert(poset_insert(poset_id, "a"));
+    Id poset_id = poset_new();
+    assert(!poset_size(poset_id));
+    assert(poset_insert(poset_id, "a"));
+    assert(!poset_insert(poset_id, "a"));
+    assert(poset_insert(poset_id, "b"));
+    assert(poset_insert(poset_id, "c"));
+    assert(poset_insert(poset_id, "d"));
+    assert(poset_add(poset_id, "b", "c"));
+    assert(poset_test(poset_id, "b", "c"));
+    assert(!poset_test(poset_id, "c", "b"));
+    assert(poset_test(poset_id, "b", "b"));
+    assert(!poset_insert(poset_id, nullptr));
+    assert(!poset_add(poset_id, "a", "a"));
+    assert(!poset_add(poset_id, "c", "b"));
+    assert(!poset_add(poset_id, "b", "c"));
+    assert(poset_add(poset_id, "c", "d"));
+    assert(poset_test(poset_id, "c", "d"));
+    assert(poset_test(poset_id, "b", "d"));
+    assert(poset_add(poset_id, "a", "b"));
+    assert(poset_test(poset_id, "a", "b"));
+    assert(poset_test(poset_id, "a", "d"));
+    assert(!poset_test(poset_id, "d", "a"));
+    poset_clear(poset_id);
+    assert(!poset_test(poset_id, "a", "d"));
+    assert(!poset_test(poset_id, "b", "c"));
+    assert(!poset_test(poset_id, "b", "d"));
+    assert(poset_insert(poset_id, "a"));
+
+
+    poset_clear(poset_id);
+    assert(poset_size(poset_id) == 0);
 //
+    assert(poset_insert(poset_id, "a"));
+    assert(poset_insert(poset_id, "b"));
+    assert(poset_insert(poset_id, "c"));
+    assert(poset_add(poset_id, "a", "b"));
+    assert(poset_add(poset_id, "b", "c"));
 //
-//    poset_clear(poset_id);
-//    assert(poset_size(poset_id) == 0);
-////
-//    assert(poset_insert(poset_id, "a"));
-//    assert(poset_insert(poset_id, "b"));
-//    assert(poset_insert(poset_id, "c"));
-//    assert(poset_add(poset_id, "a", "b"));
-//    assert(poset_add(poset_id, "b", "c"));
-////
-//    assert(!poset_del(poset_id, "a", "c"));
-//    assert(poset_insert(poset_id, "d"));
-//    assert(!poset_del(poset_id, "a", "d"));
-//    assert(!poset_del(poset_id, "a", nullptr));
-//    assert(!poset_del(poset_id, "a", "e"));
-////
-//    assert(poset_remove(poset_id, "b"));
-//    assert(poset_remove(poset_id, "c"));
-//    assert(poset_remove(poset_id, "d"));
-//    assert(poset_size(poset_id) == 1);
-//    assert(!poset_test(poset_id, "b", "d"));
-//    assert(!poset_test(poset_id, "a", "d"));
+    assert(!poset_del(poset_id, "a", "c"));
+    assert(poset_insert(poset_id, "d"));
+    assert(!poset_del(poset_id, "a", "d"));
+    assert(!poset_del(poset_id, "a", nullptr));
+    assert(!poset_del(poset_id, "a", "e"));
+//
+    assert(poset_remove(poset_id, "b"));
+    assert(poset_remove(poset_id, "c"));
+    assert(poset_remove(poset_id, "d"));
+    assert(poset_size(poset_id) == 1);
+    assert(!poset_test(poset_id, "b", "d"));
+    assert(!poset_test(poset_id, "a", "d"));
 
 }
