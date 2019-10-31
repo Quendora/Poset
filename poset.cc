@@ -172,8 +172,8 @@ namespace
 		{
 			std::cerr << POSET << id << COMMA << RELATION
 			          << OPENING_BRACKET << getCaps(value1) << COMMA
-			          << getCaps(value2)
-			          << CLOSING_BRACKET << SPACE << comment << std::endl;
+			          << getCaps(value2) << CLOSING_BRACKET << SPACE
+			          << comment << std::endl;
 		}
 	}
 
@@ -601,13 +601,14 @@ namespace
 	{
 		for (ElementPointer element : greaterThanRelations)
 		{
-			if (checkIfElementIsLessThanTheOther(id, element, value))
+			if (checkIfElementIsLessThanTheOther(id, element, value) &&
+				!checkIfElementsAreEqual(value, element))
 			{
-				return false;
+				return true;
 			}
 		}
 
-		return true;
+		return false;
 	}
 
 	bool checkIfNoOtherWay(unsigned long id, char const *value1,
@@ -624,7 +625,7 @@ namespace
 		//TODO DEBUG POSET N, RELATION ("A", "B") CANNOT BE DELETED
 		printErrRelationCannotBeDeleted(id, value1, value2, check);
 
-		return check;
+		return !check;
 	}
 
 	void deleteElementsFromRelations(unsigned long id, char const *value1,
