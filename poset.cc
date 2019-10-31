@@ -2,57 +2,9 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <string>
-#include <string.h>
+#include <cstring>
 #include <assert.h>
 
-const int LESSER_ELEMENT = 0;
-const int GREATER_ELEMENT = 1;
-const bool WANTED_IN_POSET = true;
-const bool NOT_WANTED_IN_POSET = false;
-const char *NULL_VALUE = nullptr;
-const int ONLY_ONE_VALUE = 0;
-const int FIRST_VALUE = 1;
-const int SECOND_VALUE = 2;
-const int CHECK_BOTH = 2;
-
-const char *DOES_NOT_EXIST = "does not exist";
-const char *NULL_STRING = "\"NULL\"";
-const char *QUOTE = "\"";
-const char *POSET_NEW_WITH_BRACKETS = "poset_new()";
-const char *POSET_NEW = "poset_new: ";
-const char *POSET_ = "poset_";
-const char *POSET = "poset ";
-const char *SPACE = " ";
-const char *OPENING_BRACKET = "(";
-const char *CLOSING_BRACKET = ")";
-const char *COLON = ": ";
-const char *CONTAINS = " contains ";
-const char *ELEMENTS_S = " element(s)";
-const char *COMMA = ", ";
-const char *ELEMENT = "element ";
-const char *RELATION = "relation ";
-const char *INVALID_VALUE = "invalid value";
-const char *NULL_IN_BRANCKETS = " (NULL)";
-const char *EXISTS = "exists";
-const char *DOES_NOT_EXISTS = "does not exists";
-const char *ALREADY_EXISTS = "already exists";
-const char *CANNOT_BE_DELETED = "cannot be deleted";
-const char *CANNOT_BE_ADDED = "cannot be added";
-const char *OR = " or ";
-const char *DELETE = "delete";
-const char *DELETED = "deleted";
-const char *CREATED = "created";
-const char *SIZE = "size";
-const char *INSERT = "insert";
-const char *INSERTED = "inserted";
-const char *REMOVE = "remove";
-const char *REMOVED = "removed";
-const char *ADD = "add";
-const char *ADDED = "added";
-const char *DEL = "del";
-const char *TEST = "test";
-const char *CLEAR = "clear";
-const char *CLEARED = "cleared";
 
 using RelationType = int;
 using Id = unsigned long;
@@ -72,13 +24,59 @@ void cerr_init()
 
 namespace
 {
+	const int LESSER_ELEMENT = 0;
+	const int GREATER_ELEMENT = 1;
+	const bool WANTED_IN_POSET = true;
+	const bool NOT_WANTED_IN_POSET = false;
+	const char *NULL_VALUE = nullptr;
+	const int ONLY_ONE_VALUE = 0;
+	const int FIRST_VALUE = 1;
+	const int SECOND_VALUE = 2;
+	const int CHECK_BOTH = 2;
+
+	const char *DOES_NOT_EXIST = "does not exist";
+	const char *NULL_STRING = "\"NULL\"";
+	const char *QUOTE = "\"";
+	const char *POSET_NEW_WITH_BRACKETS = "poset_new()";
+	const char *POSET_NEW = "poset_new: ";
+	const char *POSET_ = "poset_";
+	const char *POSET = "poset ";
+	const char *SPACE = " ";
+	const char *OPENING_BRACKET = "(";
+	const char *CLOSING_BRACKET = ")";
+	const char *COLON = ": ";
+	const char *CONTAINS = " contains ";
+	const char *ELEMENTS_S = " element(s)";
+	const char *COMMA = ", ";
+	const char *ELEMENT = "element ";
+	const char *RELATION = "relation ";
+	const char *INVALID_VALUE = "invalid value";
+	const char *NULL_IN_BRANCKETS = " (NULL)";
+	const char *EXISTS = "exists";
+	const char *ALREADY_EXISTS = "already exists";
+	const char *CANNOT_BE_DELETED = "cannot be deleted";
+	const char *CANNOT_BE_ADDED = "cannot be added";
+	const char *OR = " or ";
+	const char *DELETE = "delete";
+	const char *DELETED = "deleted";
+	const char *CREATED = "created";
+	const char *SIZE = "size";
+	const char *INSERT = "insert";
+	const char *INSERTED = "inserted";
+	const char *REMOVE = "remove";
+	const char *REMOVED = "removed";
+	const char *ADD = "add";
+	const char *ADDED = "added";
+	const char *DEL = "del";
+	const char *TEST = "test";
+	const char *CLEAR = "clear";
+	const char *CLEARED = "cleared";
+
 #ifndef NDEBUG
 	const bool debug = true;
 #else
 	const bool debug = false;
 #endif
-
-	unsigned long nextFreeId = 0;
 
 	Posets &posets()
 	{
@@ -201,7 +199,7 @@ namespace
 		}
 		else
 		{
-			printErrEndTwoValues(id, value1, value2, DOES_NOT_EXISTS);
+			printErrEndTwoValues(id, value1, value2, DOES_NOT_EXIST);
 		}
 	}
 
@@ -209,7 +207,7 @@ namespace
 	{
 		if (debug && !check)
 		{
-			printErrEndNoValue(id, DOES_NOT_EXISTS);
+			printErrEndNoValue(id, DOES_NOT_EXIST);
 		}
 	}
 
@@ -220,7 +218,7 @@ namespace
 		{
 			if (!check && wantedInPoset)
 			{
-				printErrEndOneValue(id, value, DOES_NOT_EXISTS);
+				printErrEndOneValue(id, value, DOES_NOT_EXIST);
 			}
 
 			if (check && !wantedInPoset)
@@ -403,7 +401,7 @@ namespace
 
 		if (!check)
 		{
-			printErrEndTwoValues(id, value1, value2, DOES_NOT_EXIST);
+			printErrEndTwoValues(id, value1, value2, CANNOT_BE_DELETED);
 		}
 
 		return check;
@@ -519,9 +517,9 @@ namespace
 	}
 
 
-	void closureRelationBetweenElements(Poset &poset, const Element &elementA,
-			const Element &elementB, Relations &elementARelations,
-			Relations &elementBRelations, RelationType relationType)
+	void closureRelationBetweenElements(Poset &poset,
+			Relations &elementARelations, Relations &elementBRelations,
+			RelationType relationType)
 	{
 		for (const Element &elementFromElementARelations: elementARelations)
 		{
@@ -546,11 +544,11 @@ namespace
 		GreaterThanRelations &greaterThanRelationsOfGreaterElement =
 				poset.at(greaterElement).second;
 
-		closureRelationBetweenElements(poset, greaterElement, lessElement,
+		closureRelationBetweenElements(poset,
 				greaterThanRelationsOfGreaterElement,
 				lessThanRelationsOfLessElement, LESSER_ELEMENT);
 
-		closureRelationBetweenElements(poset, lessElement, greaterElement,
+		closureRelationBetweenElements(poset,
 				lessThanRelationsOfLessElement,
 				greaterThanRelationsOfGreaterElement, GREATER_ELEMENT);
 	}
@@ -602,7 +600,7 @@ namespace
 		for (ElementPointer element : greaterThanRelations)
 		{
 			if (checkIfElementIsLessThanTheOther(id, element, value) &&
-				!checkIfElementsAreEqual(value, element))
+					!checkIfElementsAreEqual(value, element))
 			{
 				return true;
 			}
@@ -658,8 +656,9 @@ extern "C"
 unsigned long poset_new(void)
 {
 	printErrPoset_newBeg();
-
+	static unsigned long nextFreeId = 0;
 	Poset poset;
+
 	unsigned long newId = nextFreeId;
 
 	posets().insert({newId, poset});
@@ -831,64 +830,15 @@ void poset_clear(unsigned long id)
 
 int main()
 {
-	unsigned long p1;
+	unsigned long posetID;
 
-	p1 = poset_new();
-//	assert(poset_size(p1) == 0);
-//	assert(poset_size(p1 + 1) == 0);
-//	assert(!poset_insert(p1, NULL));
-//	assert(poset_insert(p1, "A"));
-//	assert(poset_test(p1, "A", "A"));
-//	assert(!poset_insert(p1, "A"));
-//	assert(!poset_insert(p1 + 1, "B"));
-//	assert(poset_size(p1) == 1);
-//	assert(!poset_remove(p1 + 1, "A"));
-//	assert(poset_remove(p1, "A"));
-//	assert(!poset_remove(p1, "A"));
-//	assert(poset_insert(p1, "B"));
-//	assert(poset_insert(p1, "C"));
-//	assert(poset_add(p1, "B", "C"));
-//	assert(!poset_remove(p1, "A"));
-//	assert(!poset_add(p1, NULL, "X"));
-//	assert(!poset_del(p1, NULL, "X"));
-//	assert(!poset_test(p1, NULL, "X"));
-//	assert(!poset_add(p1, "X", NULL));
-//	assert(!poset_del(p1, "X", NULL));
-//	assert(!poset_test(p1, "X", NULL));
-//	assert(!poset_add(p1, NULL, NULL));
-//	assert(!poset_del(p1, NULL, NULL));
-//	assert(!poset_test(p1, NULL, NULL));
-//	assert(!poset_add(p1, "C", "D"));
-//	assert(!poset_add(p1, "D", "C"));
-//	assert(!poset_del(p1, "C", "D"));
-//	assert(!poset_del(p1, "D", "C"));
-//	assert(!poset_test(p1, "C", "D"));
-//	assert(!poset_test(p1, "D", "C"));
-//	assert(!poset_add(p1 + 1, "C", "D"));
-//	assert(!poset_del(p1 + 1, "C", "D"));
-//	assert(!poset_test(p1 + 1, "C", "D"));
-//	poset_clear(p1);
-//	poset_clear(p1 + 1);
-	assert(poset_insert(p1, "E"));
-	assert(poset_insert(p1, "F"));
-	assert(poset_insert(p1, "G"));
-	assert(poset_add(p1, "E", "F"));
-	assert(!poset_add(p1, "E", "F"));
-	assert(!poset_add(p1, "F", "E"));
-	assert(poset_test(p1, "E", "F"));
-	assert(!poset_test(p1, "F", "E"));
-	assert(poset_add(p1, "F", "G"));
-	assert(poset_test(p1, "E", "G"));
-	assert(!poset_del(p1, "E", "G"));
-	assert(poset_del(p1, "E", "F"));
-	assert(!poset_del(p1, "E", "F"));
-
-	assert(!poset_del(p1, "G", "F"));
-	assert(!poset_del(p1, "G", "G"));
-	assert(poset_size(p1) == 3);
-	poset_delete(p1);
-	poset_delete(p1);
-	poset_delete(p1 + 1);
+//	poset_add(posetID, "WLR", "BMQ");
+//	poset_del(posetID, "WLR", "BMQ");
+//	poset_add(posetID, "C", "AR");
+//	poset_test(posetID, "WLR", "BMQ");
+//	poset_del(posetID, "C", "AR");
+//	poset_del(posetID, "C", "AR");
+//	poset_del(posetID, NULL, NULL);
 
 	return 0;
 
